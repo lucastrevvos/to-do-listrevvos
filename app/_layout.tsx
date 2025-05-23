@@ -5,7 +5,7 @@ import { ThemeProvider } from "styled-components/native";
 export default function RootLayout() {
   return (
     <ThemeProvider theme={theme}>
-      <Stack />
+      <Stack screenOptions={{ headerShown: false }} />
     </ThemeProvider>
   );
 }
