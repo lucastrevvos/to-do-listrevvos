@@ -1,14 +1,16 @@
 import { ButtonIcon } from "@/src/components/ButtonIcon";
 import { Header } from "@/src/components/Header";
 import { Input } from "@/src/components/Input";
+import { TaskStatus } from "@/src/components/TaskStatus";
 import { useState } from "react";
-import { Text, View } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
 export function Home() {
   const { COLORS } = useTheme();
   const [checked, setChecked] = useState(false);
+  const [createdCount, setCreatedCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
 
   return (
     <>
@@ -22,9 +24,10 @@ export function Home() {
           <ButtonIcon icon="add-circle-outline" />
         </Form>
         <Content>
-          <View>
-            <Text>teste</Text>
-          </View>
+          <TaskStatus
+            createdCount={createdCount}
+            completedCount={completedCount}
+          ></TaskStatus>
         </Content>
       </Container>
     </>
