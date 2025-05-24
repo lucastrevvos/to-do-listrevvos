@@ -1,8 +1,11 @@
 import { ButtonIcon } from "@/src/components/ButtonIcon";
 import { Header } from "@/src/components/Header";
 import { Input } from "@/src/components/Input";
+import { ListEmpty } from "@/src/components/ListEmpty";
+import { Tasks } from "@/src/components/Tasks";
 import { TaskStatus } from "@/src/components/TaskStatus";
 import { useState } from "react";
+import { FlatList } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
@@ -28,6 +31,16 @@ export function Home() {
             createdCount={createdCount}
             completedCount={completedCount}
           ></TaskStatus>
+          <FlatList
+            data={[]}
+            renderItem={() => <Tasks></Tasks>}
+            ListEmptyComponent={() => (
+              <ListEmpty
+                title="Você ainda não tem tarefas cadastradas"
+                text="Crie tarefas e organize seus itens a fazer"
+              />
+            )}
+          />
         </Content>
       </Container>
     </>
