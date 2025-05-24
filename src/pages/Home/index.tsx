@@ -15,13 +15,26 @@ export function Home() {
   const [createdCount, setCreatedCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [tasks, setTasks] = useState([
-    "Fazer comida",
-    "Lavar louça",
-    "Terminar o app do todo",
-    "Limpar a casa",
-    "Fazer alguam coisa grande pra ter significad na vida, Fazer alguam coisa grande pra ter significad na vida",
-    "Achar o amor verdadeiro",
+    { id: "1", title: "Fazer comida", completed: false },
+    { id: "2", title: "Lavar louça", completed: false },
+    { id: "3", title: "Terminar o app do todo", completed: false },
+    { id: "4", title: "Limpar a casa", completed: false },
+    { id: "5", title: "Fazer algo com significado na vida", completed: false },
+    { id: "6", title: "Achar o amor verdadeiro", completed: false },
   ]);
+
+  function handleToggleTask(id: string) {
+    const updated = tasks.map((task) =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+
+    const reordered = [
+      ...updated.filter((t) => !t.completed),
+      ...updated.filter((t) => t.completed),
+    ];
+
+    return setTasks(reordered);
+  }
 
   return (
     <>
@@ -41,8 +54,10 @@ export function Home() {
           ></TaskStatus>
           <FlatList
             data={tasks}
-            keyExtractor={(item) => item}
-            renderItem={({ item }) => <Tasks task={item} />}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Tasks task={item} onToggle={() => handleToggleTask(item.id)} />
+            )}
             contentContainerStyle={{ paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={() => (

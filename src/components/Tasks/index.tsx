@@ -1,16 +1,22 @@
-import { useState } from "react";
 import { Checkbox } from "../Checkbox";
 import { Container, Icon, Text } from "./styles";
 
-type Props = {
-  task: string;
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
 };
-export function Tasks({ task }: Props) {
-  const [checked, setChecked] = useState(false);
+
+type Props = {
+  task: Task;
+  onToggle: () => void;
+};
+
+export function Tasks({ task, onToggle }: Props) {
   return (
     <Container>
-      <Checkbox onPress={() => setChecked(!checked)} checked={checked} />
-      <Text completed={checked}>{task}</Text>
+      <Checkbox onPress={onToggle} checked={task.completed} />
+      <Text completed={task.completed}>{task.title}</Text>
       <Icon name="trash-outline"></Icon>
     </Container>
   );
