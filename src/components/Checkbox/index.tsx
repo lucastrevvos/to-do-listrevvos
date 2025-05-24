@@ -1,5 +1,5 @@
 import { TouchableOpacityProps } from "react-native";
-import { Box, Container, Dot } from "./styles";
+import { Box, Container, Icon } from "./styles";
 
 type Props = TouchableOpacityProps & {
   checked: boolean;
@@ -8,7 +8,7 @@ type Props = TouchableOpacityProps & {
 export function Checkbox({ checked, ...rest }: Props) {
   return (
     <Container {...rest}>
-      <Box checked={checked}>{checked && <Dot />}</Box>
+      <Box checked={checked}>{checked && <Icon name="checkmark" />}</Box>
     </Container>
   );
 }

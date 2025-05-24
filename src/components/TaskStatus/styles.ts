@@ -4,9 +4,6 @@ export const Container = styled.View`
   flex-direction: row;
   justify-content: space-between;
   padding: 10px 0 20px 12px;
-
-  border-bottom-width: 1px;
-  border-bottom-color: #333333;
 `;
 
 export const StatusBox = styled.View`

@@ -11,9 +11,17 @@ import { Container, Content, Form } from "./styles";
 
 export function Home() {
   const { COLORS } = useTheme();
-  const [checked, setChecked] = useState(false);
+
   const [createdCount, setCreatedCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
+  const [tasks, setTasks] = useState([
+    "Fazer comida",
+    "Lavar louça",
+    "Terminar o app do todo",
+    "Limpar a casa",
+    "Fazer alguam coisa grande pra ter significad na vida, Fazer alguam coisa grande pra ter significad na vida",
+    "Achar o amor verdadeiro",
+  ]);
 
   return (
     <>
@@ -32,8 +40,11 @@ export function Home() {
             completedCount={completedCount}
           ></TaskStatus>
           <FlatList
-            data={[]}
-            renderItem={() => <Tasks></Tasks>}
+            data={tasks}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => <Tasks task={item} />}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
             ListEmptyComponent={() => (
               <ListEmpty
                 title="Você ainda não tem tarefas cadastradas"

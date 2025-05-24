@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import styled from "styled-components/native";
 
 type Props = {
@@ -9,8 +10,8 @@ export const Container = styled.TouchableOpacity`
 `;
 
 export const Box = styled.View<Props>`
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-width: 2px;
   border-radius: 12px;
   align-items: center;
@@ -23,9 +24,7 @@ export const Box = styled.View<Props>`
     checked ? theme.COLORS.PURPLE_DARK : theme.COLORS.BLUE};
 `;
 
-export const Dot = styled.View`
-  width: 12px;
-  height: 12px;
-  border-radius: 6px;
-  background-color: ${({ theme }) => theme.COLORS.WHITE};
-`;
+export const Icon = styled(Ionicons).attrs(({ theme }) => ({
+  size: 13,
+  color: theme.COLORS.WHITE,
+}))``;
