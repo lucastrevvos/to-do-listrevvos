@@ -4,16 +4,13 @@ import { Input } from "@/src/components/Input";
 import { ListEmpty } from "@/src/components/ListEmpty";
 import { Tasks } from "@/src/components/Tasks";
 import { TaskStatus } from "@/src/components/TaskStatus";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
 export function Home() {
   const { COLORS } = useTheme();
-
-  const [createdCount, setCreatedCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
   const [tasks, setTasks] = useState([
     { id: "1", title: "Fazer comida", completed: false },
     { id: "2", title: "Lavar louça", completed: false },
@@ -22,6 +19,12 @@ export function Home() {
     { id: "5", title: "Fazer algo com significado na vida", completed: false },
     { id: "6", title: "Achar o amor verdadeiro", completed: false },
   ]);
+
+  const createdCount = useMemo(() => tasks.length, [tasks]);
+  const completedCount = useMemo(
+    () => tasks.filter((task) => task.completed).length,
+    [tasks]
+  );
 
   function handleToggleTask(id: string) {
     const updated = tasks.map((task) =>
