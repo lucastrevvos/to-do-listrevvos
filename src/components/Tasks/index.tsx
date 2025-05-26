@@ -1,3 +1,4 @@
+import { Task } from "@/src/types/task";
 import Animated, {
   FadeInUp,
   FadeOutUp,
@@ -6,18 +7,13 @@ import Animated, {
 import { Checkbox } from "../Checkbox";
 import { Container, Icon, Text } from "./styles";
 
-type Task = {
-  id: string;
-  title: string;
-  completed: boolean;
-};
-
 type Props = {
   task: Task;
   onToggle: () => void;
+  onRemove: (id: string) => void;
 };
 
-export function Tasks({ task, onToggle }: Props) {
+export function Tasks({ task, onToggle, onRemove }: Props) {
   return (
     <Animated.View
       entering={FadeInUp}
@@ -27,7 +23,7 @@ export function Tasks({ task, onToggle }: Props) {
       <Container>
         <Checkbox onPress={onToggle} checked={task.completed} />
         <Text completed={task.completed}>{task.title}</Text>
-        <Icon name="trash-outline"></Icon>
+        <Icon onPress={() => onRemove(task.id)} name="trash-outline"></Icon>
       </Container>
     </Animated.View>
   );

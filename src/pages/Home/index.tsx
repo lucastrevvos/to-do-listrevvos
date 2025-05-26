@@ -4,21 +4,18 @@ import { Input } from "@/src/components/Input";
 import { ListEmpty } from "@/src/components/ListEmpty";
 import { Tasks } from "@/src/components/Tasks";
 import { TaskStatus } from "@/src/components/TaskStatus";
-import { useMemo, useState } from "react";
-import { FlatList } from "react-native";
+import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
+import { Task } from "@/src/types/task";
+import { AppError } from "@/src/utils/AppError";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, FlatList, Keyboard } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
 export function Home() {
   const { COLORS } = useTheme();
-  const [tasks, setTasks] = useState([
-    { id: "1", title: "Fazer comida", completed: false },
-    { id: "2", title: "Lavar louça", completed: false },
-    { id: "3", title: "Terminar o app do todo", completed: false },
-    { id: "4", title: "Limpar a casa", completed: false },
-    { id: "5", title: "Fazer algo com significado na vida", completed: false },
-    { id: "6", title: "Achar o amor verdadeiro", completed: false },
-  ]);
+  const [newTask, setNewTask] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const createdCount = useMemo(() => tasks.length, [tasks]);
   const completedCount = useMemo(
@@ -36,8 +33,82 @@ export function Home() {
       ...updated.filter((t) => t.completed),
     ];
 
-    return setTasks(reordered);
+    setTasks(reordered);
+    saveTasks(reordered);
   }
+
+  async function handleAddTask() {
+    try {
+      const title = newTask.trim();
+
+      if (!title) {
+        throw new AppError("Você precisa escrever uma tarefa.");
+      }
+
+      const taskAlreadyExists = tasks.some((task) => task.title === title);
+
+      if (taskAlreadyExists) {
+        throw new AppError("Essa tarefa já existe");
+      }
+
+      const newTaskObj: Task = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        title,
+        completed: false,
+      };
+
+      const updatedTasks = [newTaskObj, ...tasks];
+
+      Keyboard.dismiss();
+
+      setTasks(updatedTasks);
+      setNewTask("");
+
+      await saveTasks(updatedTasks);
+    } catch (error) {
+      if (error instanceof AppError) {
+        Alert.alert("Nova Task", error.message);
+      } else {
+        console.log(error);
+        Alert.alert("Nova Task", "Não foi possível criar uma nova tarefa");
+      }
+    }
+  }
+
+  async function fetchTasks() {
+    try {
+      const stored = await loadTasks();
+      setTasks(stored);
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Exibir Tasks", "Erro ao carregar tasks do AsyncStorage");
+    }
+  }
+
+  async function handleRemoveTask(id: string) {
+    try {
+      if (!tasks.some((task) => task.id === id)) {
+        throw new AppError("Tarefa não encontrada");
+      }
+
+      const updated = tasks.filter((task) => task.id !== id);
+
+      setTasks(updated);
+
+      removeTaskById(id);
+    } catch (error) {
+      if (error instanceof AppError) {
+        Alert.alert("Remover Tarefa", error.message);
+      } else {
+        console.log(error);
+        Alert.alert("Remover Tarefa", "Não foi possível remove a tarefa");
+      }
+    }
+  }
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   return (
     <>
@@ -47,8 +118,12 @@ export function Home() {
           <Input
             placeholder="Adicione uma nova tarefa"
             placeholderTextColor={COLORS.GRAY_300}
+            onChangeText={setNewTask}
+            value={newTask}
+            onSubmitEditing={handleAddTask}
+            returnKeyType="done"
           />
-          <ButtonIcon icon="add-circle-outline" />
+          <ButtonIcon icon="add-circle-outline" onPress={handleAddTask} />
         </Form>
         <Content>
           <TaskStatus
@@ -59,7 +134,11 @@ export function Home() {
             data={tasks}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <Tasks task={item} onToggle={() => handleToggleTask(item.id)} />
+              <Tasks
+                task={item}
+                onRemove={() => handleRemoveTask(item.id)}
+                onToggle={() => handleToggleTask(item.id)}
+              />
             )}
             contentContainerStyle={{ paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}

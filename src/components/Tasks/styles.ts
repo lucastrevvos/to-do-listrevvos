@@ -40,5 +40,5 @@ export const Text = styled.Text<Props>`
 
 export const Icon = styled(Ionicons).attrs(({ theme }) => ({
   size: 18,
-  color: theme.COLORS.GRAY_400,
+  color: theme.COLORS.GRAY_300,
 }))``;
