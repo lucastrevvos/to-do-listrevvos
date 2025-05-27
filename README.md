@@ -41,7 +41,7 @@ npm install
 
 ## Política de Privacidade
 
-(https://github.com/lucastrevvos/todolist-trevvos/blob/main/privacy-policy.md)
+(https://github.com/lucastrevvos/to-do-listrevvos/blob/master/privacy-policy.md)
 
 ## Autor
 
