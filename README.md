@@ -1,50 +1,53 @@
-# Welcome to your Expo app 👋
+# ✅ TodoList Trevvos
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Uma aplicação mobile de lista de tarefas construída com **React Native (Expo)**.  
+Simples, leve e funcional — ideal para quem busca produtividade com uma interface limpa.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Funcionalidades
 
-   ```bash
-   npm install
-   ```
+- ✅ Adicionar novas tarefas
+- ✅ Marcar tarefas como concluídas
+- ✅ Visualizar contagem de tarefas criadas e finalizadas
+- ✅ Remover tarefas individualmente
+- ✅ Dados persistidos localmente com AsyncStorage
+- ✅ Interface responsiva e intuitiva
+- ✅ Splash screen e ícone personalizados
+- ✅ Pronto para publicação na Play Store
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 📱 Tecnologias utilizadas
 
-In the output, you'll find options to open the app in a
+- [React Native](https://reactnative.dev/)
+- [Expo](https://expo.dev/)
+- [Styled-Components](https://styled-components.com/)
+- [AsyncStorage](https://github.com/react-native-async-storage/async-storage)
+- [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
+- [EAS Build](https://docs.expo.dev/eas/)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Como executar o projeto
 
-## Get a fresh project
-
-When you're ready, run:
+Clone o repositório e instale as dependências:
 
 ```bash
-npm run reset-project
+git clone https://github.com/lucastrevvos/todolist-trevvos.git
+cd todolist-trevvos
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Política de Privacidade
 
-## Learn more
+(https://github.com/lucastrevvos/todolist-trevvos/blob/main/privacy-policy.md)
 
-To learn more about developing your project with Expo, look at the following resources:
+## Autor
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Feito com S2 por Lucas Trevvos
+Email: lucas.trevvos@gmail.com
 
-## Join the community
+## Licença
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Este projeto está sob a licença MIT.
