@@ -17,7 +17,7 @@ export const Content = styled.View`
 export const Form = styled.View`
   position: absolute;
 
-  top: 150px;
+  top: 200px;
   left: 12px;
   right: 12px;
   z-index: 10;
