@@ -8,14 +8,18 @@ import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
 import { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, FlatList, Keyboard } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Keyboard } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
+import { DEFAULT_GROUP_ID } from "@/src/constants/app";
+import { migrateIfNeeded } from "@/src/storage/migrations";
+
 export function Home() {
   const { COLORS } = useTheme();
-  const [newTask, setNewTask] = useState("");
+  const [newTask, setNewTask] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [isReady, setIsReady] = useState(false);
 
   const createdCount = useMemo(() => tasks.length, [tasks]);
   const completedCount = useMemo(
@@ -24,53 +28,62 @@ export function Home() {
   );
 
   function handleToggleTask(id: string) {
-    const updated = tasks.map((task) =>
+    const updated = (tasks ?? []).map((task) =>
       task.id === id ? { ...task, completed: !task.completed } : task
     );
-
     const reordered = [
       ...updated.filter((t) => !t.completed),
       ...updated.filter((t) => t.completed),
     ];
-
     setTasks(reordered);
     saveTasks(reordered);
   }
 
   async function handleAddTask() {
     try {
-      const title = newTask.trim();
+      const title = (newTask || "").trim();
+      if (!title) throw new AppError("Você precisa escrever uma tarefa.");
 
-      if (!title) {
-        throw new AppError("Você precisa escrever uma tarefa.");
-      }
-
-      const taskAlreadyExists = tasks.some((task) => task.title === title);
-
-      if (taskAlreadyExists) {
-        throw new AppError("Essa tarefa já existe");
-      }
+      const exists = tasks.some((t) => t.title === title);
+      if (exists) throw new AppError("Essa tarefa já existe");
 
       const newTaskObj: Task = {
         id: Date.now().toString() + Math.random().toString(36).substring(2),
         title,
         completed: false,
+        groupId: DEFAULT_GROUP_ID,
+        createdAt: Date.now(),
       };
 
-      const updatedTasks = [newTaskObj, ...tasks];
-
+      const updated = [newTaskObj, ...tasks];
       Keyboard.dismiss();
-
-      setTasks(updatedTasks);
+      setTasks(updated);
       setNewTask("");
-
-      await saveTasks(updatedTasks);
-    } catch (error) {
-      if (error instanceof AppError) {
-        Alert.alert("Nova Task", error.message);
+      await saveTasks(updated);
+    } catch (err) {
+      if (err instanceof AppError) {
+        Alert.alert("Nova Task", err.message);
       } else {
-        console.log(error);
+        console.log(err);
         Alert.alert("Nova Task", "Não foi possível criar uma nova tarefa");
+      }
+    }
+  }
+
+  async function handleRemoveTask(id: string) {
+    try {
+      if (!tasks.some((t) => t.id === id)) {
+        throw new AppError("Tarefa não encontrada");
+      }
+      const updated = tasks.filter((t) => t.id !== id);
+      setTasks(updated);
+      await removeTaskById(id);
+    } catch (err) {
+      if (err instanceof AppError) {
+        Alert.alert("Remover Tarefa", err.message);
+      } else {
+        console.log(err);
+        Alert.alert("Remover Tarefa", "Não foi possível remover a tarefa");
       }
     }
   }
@@ -78,79 +91,81 @@ export function Home() {
   async function fetchTasks() {
     try {
       const stored = await loadTasks();
-      setTasks(stored);
-    } catch (error) {
-      console.log(error);
+      setTasks(Array.isArray(stored) ? stored : []);
+    } catch (err) {
+      console.log(err);
       Alert.alert("Exibir Tasks", "Erro ao carregar tasks do AsyncStorage");
-    }
-  }
-
-  async function handleRemoveTask(id: string) {
-    try {
-      if (!tasks.some((task) => task.id === id)) {
-        throw new AppError("Tarefa não encontrada");
-      }
-
-      const updated = tasks.filter((task) => task.id !== id);
-
-      setTasks(updated);
-
-      removeTaskById(id);
-    } catch (error) {
-      if (error instanceof AppError) {
-        Alert.alert("Remover Tarefa", error.message);
-      } else {
-        console.log(error);
-        Alert.alert("Remover Tarefa", "Não foi possível remove a tarefa");
-      }
+    } finally {
+      setIsReady(true);
     }
   }
 
   useEffect(() => {
-    fetchTasks();
+    (async () => {
+      try {
+        await migrateIfNeeded();
+        await fetchTasks();
+      } finally {
+        setIsReady(true);
+      }
+    })();
   }, []);
 
-  return (
-    <>
+  // Loading simples (sem form duplicado)
+  if (!isReady) {
+    return (
       <Container>
         <Header />
-        <Form>
-          <Input
-            placeholder="Adicione uma nova tarefa"
-            placeholderTextColor={COLORS.GRAY_300}
-            onChangeText={setNewTask}
-            value={newTask}
-            onSubmitEditing={handleAddTask}
-            returnKeyType="done"
-          />
-          <ButtonIcon icon="add-circle-outline" onPress={handleAddTask} />
-        </Form>
-        <Content>
-          <TaskStatus
-            createdCount={createdCount}
-            completedCount={completedCount}
-          ></TaskStatus>
-          <FlatList
-            data={tasks}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Tasks
-                task={item}
-                onRemove={() => handleRemoveTask(item.id)}
-                onToggle={() => handleToggleTask(item.id)}
-              />
-            )}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={() => (
-              <ListEmpty
-                title="Você ainda não tem tarefas cadastradas"
-                text="Crie tarefas e organize seus itens a fazer"
-              />
-            )}
-          />
+        <Content style={{ alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="small" color={COLORS.GRAY_300} />
         </Content>
       </Container>
-    </>
+    );
+  }
+
+  // Tela principal
+  return (
+    <Container>
+      <Header />
+
+      <Form>
+        <Input
+          placeholder="Adicione uma nova tarefa"
+          placeholderTextColor={COLORS.GRAY_300}
+          onChangeText={setNewTask}
+          value={newTask}
+          onSubmitEditing={handleAddTask}
+          returnKeyType="done"
+        />
+        <ButtonIcon icon="add-circle-outline" onPress={handleAddTask} />
+      </Form>
+
+      <Content>
+        <TaskStatus
+          createdCount={createdCount}
+          completedCount={completedCount}
+        />
+
+        <FlatList
+          data={tasks ?? []}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Tasks
+              task={item}
+              onRemove={() => handleRemoveTask(item.id)}
+              onToggle={() => handleToggleTask(item.id)}
+            />
+          )}
+          contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={() => (
+            <ListEmpty
+              title="Você ainda não tem tarefas cadastradas"
+              text="Crie tarefas e organize seus itens a fazer"
+            />
+          )}
+        />
+      </Content>
+    </Container>
   );
 }

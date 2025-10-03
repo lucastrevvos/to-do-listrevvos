@@ -1,41 +1,28 @@
+// src/storage/tasks.ts
+import { STORAGE_KEYS } from "@/src/constants/storage";
+import type { Task } from "@/src/types/task";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Task } from "../types/task";
-import { TASKS_STORAGE_KEY } from "./storageConfig";
 
-export async function saveTasks(tasks: Task[]) {
+const TASKS_KEY = STORAGE_KEYS.tasks;
+
+export async function saveTasks(tasks: Task[]): Promise<void> {
+  const json = JSON.stringify(tasks);
+  await AsyncStorage.setItem(TASKS_KEY, json);
+}
+
+export async function loadTasks(): Promise<Task[]> {
+  const raw = await AsyncStorage.getItem(TASKS_KEY);
+  if (!raw) return [];
   try {
-    const json = JSON.stringify(tasks);
-    await AsyncStorage.setItem(TASKS_STORAGE_KEY, json);
-  } catch (error) {
-    throw error;
+    return JSON.parse(raw) as Task[];
+  } catch {
+    // se corromper, evita crash
+    return [];
   }
 }
 
-export async function loadTasks() {
-  try {
-    const storage = await AsyncStorage.getItem(TASKS_STORAGE_KEY);
-
-    const tasks = storage ? JSON.parse(storage) : [];
-
-    return tasks;
-  } catch (error) {
-    throw error;
-  }
-}
-
-export async function removeTaskById(id: string) {
-  try {
-    const storage = await AsyncStorage.getItem(TASKS_STORAGE_KEY);
-
-    const tasks: Task[] = storage ? JSON.parse(storage) : [];
-
-    const tasksFiltered = tasks.filter((task) => task.id !== id);
-
-    await AsyncStorage.setItem(
-      TASKS_STORAGE_KEY,
-      JSON.stringify(tasksFiltered)
-    );
-  } catch (error) {
-    throw error;
-  }
+export async function removeTaskById(id: string): Promise<void> {
+  const current = await loadTasks();
+  const next = current.filter((t) => t.id !== id);
+  await saveTasks(next);
 }
