@@ -9,7 +9,11 @@ import { Tasks } from "@/src/components/Tasks";
 import { TaskStatus } from "@/src/components/TaskStatus";
 
 import { DEFAULT_GROUP_ID } from "@/src/constants/app";
-import { addGroup, ensureDefaultGroup } from "@/src/storage/groups";
+import {
+  addGroup,
+  deleteGroupAndMoveTasks,
+  ensureDefaultGroup,
+} from "@/src/storage/groups";
 import { migrateIfNeeded } from "@/src/storage/migrations";
 import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
 
@@ -125,6 +129,49 @@ export function Home() {
     saveTasks(next);
   }
 
+  function confirmDeleteGroup(group: Group) {
+    if (group.id === DEFAULT_GROUP_ID) {
+      Alert.alert("Excluir grupo", 'O grupo "Geral" não pode ser excluído.');
+      return;
+    }
+
+    Alert.alert(
+      "Excluir grupo",
+      `Deseja excluir o grupo "${group.title}"?\nAs tarefas dele serão movidas para "Geral".`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteGroupAndMoveTasks(group.id, DEFAULT_GROUP_ID);
+
+              // Atualiza estado local: remove o grupo e remapeia tasks
+              const newGroups = groups.filter((g) => g.id !== group.id);
+              const newTasks = tasks.map((t) =>
+                t.groupId === group.id ? { ...t, groupId: DEFAULT_GROUP_ID } : t
+              );
+
+              setGroups(newGroups);
+              setTasks(newTasks);
+
+              // Se o grupo excluído estava selecionado, volta para "Geral"
+              if (selectedGroupId === group.id) {
+                setSelectedGroupId(DEFAULT_GROUP_ID);
+              }
+            } catch (e: any) {
+              Alert.alert(
+                "Excluir grupo",
+                e?.message ?? "Não foi possível excluir o grupo"
+              );
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function handleAddTask() {
     try {
       const title = (newTask || "").trim();
@@ -236,6 +283,7 @@ export function Home() {
         selectedId={selectedGroupId}
         onSelect={setSelectedGroupId}
         onAdd={openCreateGroup}
+        onLongPressGroup={confirmDeleteGroup}
       />
 
       <Form>
