@@ -1,42 +1,128 @@
+// src/pages/Home/index.tsx (ou src/screens/Home/index.tsx)
 import { ButtonIcon } from "@/src/components/ButtonIcon";
+import { GroupCreateModal } from "@/src/components/GroupCreateModal";
+import { GroupPicker } from "@/src/components/GroupPicker";
 import { Header } from "@/src/components/Header";
 import { Input } from "@/src/components/Input";
 import { ListEmpty } from "@/src/components/ListEmpty";
 import { Tasks } from "@/src/components/Tasks";
 import { TaskStatus } from "@/src/components/TaskStatus";
+
+import { DEFAULT_GROUP_ID } from "@/src/constants/app";
+import { addGroup, ensureDefaultGroup } from "@/src/storage/groups";
+import { migrateIfNeeded } from "@/src/storage/migrations";
 import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
-import { Task } from "@/src/types/task";
+
+import type { Group } from "@/src/types/group";
+import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
-import { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Keyboard } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
-import { DEFAULT_GROUP_ID } from "@/src/constants/app";
-import { migrateIfNeeded } from "@/src/storage/migrations";
+import { Pressable, ScrollView, Text, View } from "react-native";
+
+function GroupBar({
+  groups,
+  selectedId,
+  onSelect,
+  onAdd,
+}: {
+  groups: Group[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onAdd?: () => void;
+}) {
+  return (
+    <View
+      style={{ paddingVertical: 8, backgroundColor: "rgba(255,255,255,0.05)" }}
+    >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, alignItems: "center" }}
+      >
+        {groups.map((g) => (
+          <Pressable
+            key={g.id}
+            onPress={() => onSelect(g.id)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              marginRight: 8,
+              backgroundColor: g.id === selectedId ? "#444" : "#333",
+              borderWidth: 1,
+              borderColor: "#666",
+            }}
+          >
+            <Text style={{ color: "#fff" }}>{g.title}</Text>
+          </Pressable>
+        ))}
+
+        {onAdd && (
+          <Pressable
+            onPress={onAdd}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: "#333",
+              borderWidth: 1,
+              borderColor: "#666",
+            }}
+          >
+            <Text style={{ color: "#fff" }}>+ Novo</Text>
+          </Pressable>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
 
 export function Home() {
   const { COLORS } = useTheme();
+
   const [newTask, setNewTask] = useState<string>("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupId, setSelectedGroupId] =
+    useState<string>(DEFAULT_GROUP_ID);
   const [isReady, setIsReady] = useState(false);
 
-  const createdCount = useMemo(() => tasks.length, [tasks]);
+  // modal de novo grupo
+  const [showNewGroup, setShowNewGroup] = useState(false);
+
+  const filteredTasks = useMemo(
+    () => tasks.filter((t) => t.groupId === selectedGroupId),
+    [tasks, selectedGroupId]
+  );
+
+  const createdCount = filteredTasks.length;
   const completedCount = useMemo(
-    () => tasks.filter((task) => task.completed).length,
-    [tasks]
+    () => filteredTasks.filter((task) => task.completed).length,
+    [filteredTasks]
   );
 
   function handleToggleTask(id: string) {
     const updated = (tasks ?? []).map((task) =>
       task.id === id ? { ...task, completed: !task.completed } : task
     );
-    const reordered = [
-      ...updated.filter((t) => !t.completed),
-      ...updated.filter((t) => t.completed),
+
+    // reordena dentro do grupo selecionado
+    const sameGroup = updated.filter((t) => t.groupId === selectedGroupId);
+    const others = updated.filter((t) => t.groupId !== selectedGroupId);
+
+    const reorderedSameGroup = [
+      ...sameGroup.filter((t) => !t.completed),
+      ...sameGroup.filter((t) => t.completed),
     ];
-    setTasks(reordered);
-    saveTasks(reordered);
+
+    const next = [...reorderedSameGroup, ...others];
+    setTasks(next);
+    saveTasks(next);
   }
 
   async function handleAddTask() {
@@ -44,18 +130,19 @@ export function Home() {
       const title = (newTask || "").trim();
       if (!title) throw new AppError("Você precisa escrever uma tarefa.");
 
-      const exists = tasks.some((t) => t.title === title);
-      if (exists) throw new AppError("Essa tarefa já existe");
+      const taskAlreadyExists = filteredTasks.some((t) => t.title === title);
+      if (taskAlreadyExists) throw new AppError("Essa tarefa já existe");
 
       const newTaskObj: Task = {
         id: Date.now().toString() + Math.random().toString(36).substring(2),
         title,
         completed: false,
-        groupId: DEFAULT_GROUP_ID,
+        groupId: selectedGroupId,
         createdAt: Date.now(),
       };
 
       const updated = [newTaskObj, ...tasks];
+
       Keyboard.dismiss();
       setTasks(updated);
       setNewTask("");
@@ -88,30 +175,47 @@ export function Home() {
     }
   }
 
-  async function fetchTasks() {
+  async function bootstrap() {
     try {
-      const stored = await loadTasks();
-      setTasks(Array.isArray(stored) ? stored : []);
-    } catch (err) {
-      console.log(err);
-      Alert.alert("Exibir Tasks", "Erro ao carregar tasks do AsyncStorage");
+      await migrateIfNeeded();
+      // garante grupo "Geral"
+      const gs = await ensureDefaultGroup();
+      const ts = await loadTasks();
+
+      setGroups(gs);
+      setTasks(ts);
+
+      const hasDefault = gs.find((g) => g.id === DEFAULT_GROUP_ID);
+      setSelectedGroupId(
+        hasDefault ? DEFAULT_GROUP_ID : gs[0]?.id ?? DEFAULT_GROUP_ID
+      );
     } finally {
       setIsReady(true);
     }
   }
 
   useEffect(() => {
-    (async () => {
-      try {
-        await migrateIfNeeded();
-        await fetchTasks();
-      } finally {
-        setIsReady(true);
-      }
-    })();
+    bootstrap();
   }, []);
 
-  // Loading simples (sem form duplicado)
+  // abrir modal
+  function openCreateGroup() {
+    setShowNewGroup(true);
+  }
+
+  // confirmar criação via modal
+  async function onConfirmCreateGroup(title: string) {
+    try {
+      const g = await addGroup(title);
+      const next = [g, ...groups];
+      setGroups(next);
+      setSelectedGroupId(g.id);
+      setShowNewGroup(false);
+    } catch (e: any) {
+      Alert.alert("Novo grupo", e?.message ?? "Não foi possível criar o grupo");
+    }
+  }
+
   if (!isReady) {
     return (
       <Container>
@@ -123,10 +227,16 @@ export function Home() {
     );
   }
 
-  // Tela principal
   return (
     <Container>
       <Header />
+
+      <GroupPicker
+        groups={groups}
+        selectedId={selectedGroupId}
+        onSelect={setSelectedGroupId}
+        onAdd={openCreateGroup}
+      />
 
       <Form>
         <Input
@@ -147,7 +257,7 @@ export function Home() {
         />
 
         <FlatList
-          data={tasks ?? []}
+          data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Tasks
@@ -160,12 +270,19 @@ export function Home() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={() => (
             <ListEmpty
-              title="Você ainda não tem tarefas cadastradas"
-              text="Crie tarefas e organize seus itens a fazer"
+              title="Sem tarefas nesse grupo"
+              text="Crie tarefas e organize seus itens aqui"
             />
           )}
         />
       </Content>
+
+      {/* Modal de criação de grupo */}
+      <GroupCreateModal
+        visible={showNewGroup}
+        onClose={() => setShowNewGroup(false)}
+        onConfirm={onConfirmCreateGroup}
+      />
     </Container>
   );
 }

@@ -1,12 +1,7 @@
-import { Home } from "@/src/pages/Home";
-import {
-  Inter_400Regular,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+// app/index.tsx
+import { Home } from "@/src/pages/Home"; // ou "@/src/screens/Home"
+import React from "react";
 
 export default function Index() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_700Bold });
-
-  return fontsLoaded ? <Home /> : null;
+  return <Home />;
 }
