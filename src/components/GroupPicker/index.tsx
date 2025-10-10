@@ -106,7 +106,7 @@ export function GroupPicker({
                 android_ripple={{ color: "rgba(0,0,0,0.12)", borderless: true }}
                 hitSlop={8}
               >
-                <ChipText>+ Novo</ChipText>
+                <ChipText>+ Novo Grupo</ChipText>
               </AddChip>
             </View>
           ) : null

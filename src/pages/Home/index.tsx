@@ -26,66 +26,6 @@ import { ActivityIndicator, Alert, FlatList, Keyboard } from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
-import { Pressable, ScrollView, Text, View } from "react-native";
-
-function GroupBar({
-  groups,
-  selectedId,
-  onSelect,
-  onAdd,
-}: {
-  groups: Group[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-  onAdd?: () => void;
-}) {
-  return (
-    <View
-      style={{ paddingVertical: 8, backgroundColor: "rgba(255,255,255,0.05)" }}
-    >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, alignItems: "center" }}
-      >
-        {groups.map((g) => (
-          <Pressable
-            key={g.id}
-            onPress={() => onSelect(g.id)}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 999,
-              marginRight: 8,
-              backgroundColor: g.id === selectedId ? "#444" : "#333",
-              borderWidth: 1,
-              borderColor: "#666",
-            }}
-          >
-            <Text style={{ color: "#fff" }}>{g.title}</Text>
-          </Pressable>
-        ))}
-
-        {onAdd && (
-          <Pressable
-            onPress={onAdd}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 999,
-              backgroundColor: "#333",
-              borderWidth: 1,
-              borderColor: "#666",
-            }}
-          >
-            <Text style={{ color: "#fff" }}>+ Novo</Text>
-          </Pressable>
-        )}
-      </ScrollView>
-    </View>
-  );
-}
-
 export function Home() {
   const { COLORS } = useTheme();
 
