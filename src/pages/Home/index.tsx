@@ -22,16 +22,24 @@ import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Keyboard } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  AppState,
+  FlatList,
+  Keyboard,
+} from "react-native";
 import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
-// ==== Notificações ====
+// ==== Notificações (ajustado para não notificar ao criar) ====
 import {
   ensurePermissionsSoft,
+  // NOVOS usos:
+  markInteraction,
   maybeInactivityNudge,
+  maybeScheduleOnBackground,
   recordAppOpen,
-  scheduleDailyIfPending,
   scheduleOnboardingNudgeIfNeeded,
   scheduleWeeklyDigest,
 } from "@/src/services/notifications";
@@ -82,8 +90,8 @@ export function Home() {
     setTasks(next);
     saveTasks(next);
 
-    // notificação diária (inteligente)
-    scheduleDailyIfPending(totalPending(next)).catch(() => {});
+    // marcou interação (sem agendar push agora)
+    markInteraction();
   }
 
   function confirmDeleteGroup(group: Group) {
@@ -117,8 +125,8 @@ export function Home() {
                 setSelectedGroupId(DEFAULT_GROUP_ID);
               }
 
-              // reavalia lembrete diário
-              await scheduleDailyIfPending(totalPending(newTasks));
+              // marcou interação (sem push agora)
+              await markInteraction();
             } catch (e: any) {
               Alert.alert(
                 "Excluir grupo",
@@ -156,8 +164,8 @@ export function Home() {
 
       // pede permissão (macio) após ação significativa
       await ensurePermissionsSoft().catch(() => {});
-      // agenda lembrete diário se fizer sentido
-      await scheduleDailyIfPending(totalPending(updated));
+      // marcou interação (sem push agora)
+      await markInteraction();
     } catch (err) {
       if (err instanceof AppError) {
         Alert.alert("Nova Task", err.message);
@@ -177,8 +185,8 @@ export function Home() {
       setTasks(updated);
       await removeTaskById(id);
 
-      // reavalia lembrete diário
-      await scheduleDailyIfPending(totalPending(updated));
+      // marcou interação (sem push agora)
+      await markInteraction();
     } catch (err) {
       if (err instanceof AppError) {
         Alert.alert("Remover Tarefa", err.message);
@@ -205,13 +213,10 @@ export function Home() {
         hasDefault ? DEFAULT_GROUP_ID : gs[0]?.id ?? DEFAULT_GROUP_ID
       );
 
-      // ===== Notificações (onboarding / inatividade / diário / semanal)
+      // ===== Notificações (sem agendar diário aqui)
       await recordAppOpen();
       await scheduleOnboardingNudgeIfNeeded();
       await maybeInactivityNudge();
-
-      // diário: só se houver pendências
-      await scheduleDailyIfPending(totalPending(ts));
 
       // semanal (dom 19h) com métricas simples
       const pending = totalPending(ts);
@@ -227,6 +232,17 @@ export function Home() {
     bootstrap();
   }, []);
 
+  // Agenda lembrete DIÁRIO somente quando o app vai para background/inactive
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state === "background" || state === "inactive") {
+        const pending = filteredTasks.filter((t) => !t.completed).length;
+        await maybeScheduleOnBackground(pending);
+      }
+    });
+    return () => sub.remove();
+  }, [filteredTasks]);
+
   // abrir modal
   function openCreateGroup() {
     setShowNewGroup(true);
@@ -240,6 +256,7 @@ export function Home() {
       setGroups(next);
       setSelectedGroupId(g.id);
       setShowNewGroup(false);
+      await markInteraction();
     } catch (e: any) {
       Alert.alert("Novo grupo", e?.message ?? "Não foi possível criar o grupo");
     }
