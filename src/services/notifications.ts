@@ -14,6 +14,7 @@ export const NOTI_KEYS = {
   reminderTime: "@trevvos/noti:reminderTime", // "20:00"
   permissionGrantedAt: "@trevvos/noti:permissionGrantedAt",
   lastInteractionAt: "@trevvos/noti:lastInteractionAt",
+  onboardingScheduled: "@trevvos/noti:onboardingScheduled",
 } as const;
 
 /**
@@ -178,13 +179,29 @@ export async function scheduleOnboardingNudgeIfNeeded() {
   const first = await AsyncStorage.getItem(NOTI_KEYS.firstOpenAt);
   if (!first) return;
 
-  const already = await Notifications.getAllScheduledNotificationsAsync();
-  const exists = already.some((n) => n.content?.data?.kind === "onboarding");
-  if (exists) return;
+  // já marcamos que agendou (ou que foi descartado)
+  const flag = await AsyncStorage.getItem(NOTI_KEYS.onboardingScheduled);
+  if (flag === "1") return;
 
+  // calcula “+2 dias, 20:00”
   const fire = new Date(Number(first));
   fire.setDate(fire.getDate() + 2);
   fire.setHours(20, 0, 0, 0);
+
+  const now = new Date();
+
+  // se já passou, não agenda e marca flag pra não tentar de novo
+  if (fire <= now) {
+    await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
+    return;
+  }
+
+  // se por algum motivo já existe um onboarding pendente, marca e sai
+  const already = await Notifications.getAllScheduledNotificationsAsync();
+  if (already.some((n) => n.content?.data?.kind === "onboarding")) {
+    await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
+    return;
+  }
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -193,8 +210,11 @@ export async function scheduleOnboardingNudgeIfNeeded() {
       categoryIdentifier: "trevvos-reminders",
       data: { kind: "onboarding", url: "trevvos://pending" },
     },
-    trigger: { date: fire } as any, // força tipo de Date trigger
+    trigger: { date: fire } as any,
   });
+
+  // marcou pra nunca mais repetir essa lógica
+  await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
 }
 
 /**
