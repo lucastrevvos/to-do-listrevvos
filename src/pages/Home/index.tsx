@@ -33,6 +33,7 @@ import { useTheme } from "styled-components/native";
 import { Container, Content, Form } from "./styles";
 
 // ==== Notificações (ajustado para não notificar ao criar) ====
+import { HintBanner } from "@/src/components/HintBanner";
 import {
   ensurePermissionsSoft,
   // NOVOS usos:
@@ -43,6 +44,11 @@ import {
   scheduleOnboardingNudgeIfNeeded,
   scheduleWeeklyDigest,
 } from "@/src/services/notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const UI_KEYS = {
+  hideDeleteGroupHint: "@trevvos/ui:hideDeleteGroupHint",
+} as const;
 
 export function Home() {
   const { COLORS } = useTheme();
@@ -53,6 +59,8 @@ export function Home() {
   const [selectedGroupId, setSelectedGroupId] =
     useState<string>(DEFAULT_GROUP_ID);
   const [isReady, setIsReady] = useState(false);
+
+  const [showDeleteHint, setShowDeleteHint] = useState(false);
 
   // modal de novo grupo
   const [showNewGroup, setShowNewGroup] = useState(false);
@@ -208,6 +216,11 @@ export function Home() {
       setGroups(gs);
       setTasks(ts);
 
+      const hide = await AsyncStorage.getItem(UI_KEYS.hideDeleteGroupHint);
+      if (!hide && (gs?.length ?? 0) > 1) {
+        setShowDeleteHint(true);
+      }
+
       const hasDefault = gs.find((g) => g.id === DEFAULT_GROUP_ID);
       setSelectedGroupId(
         hasDefault ? DEFAULT_GROUP_ID : gs[0]?.id ?? DEFAULT_GROUP_ID
@@ -248,6 +261,11 @@ export function Home() {
     setShowNewGroup(true);
   }
 
+  async function dismissDeleteHint() {
+    setShowDeleteHint(false);
+    await AsyncStorage.setItem(UI_KEYS.hideDeleteGroupHint, "1");
+  }
+
   // confirmar criação via modal
   async function onConfirmCreateGroup(title: string) {
     try {
@@ -284,6 +302,13 @@ export function Home() {
         onAdd={openCreateGroup}
         onLongPressGroup={confirmDeleteGroup}
       />
+
+      {showDeleteHint && (
+        <HintBanner
+          text="Dica: para excluir um grupo, toque e segure no nome dele."
+          onClose={dismissDeleteHint}
+        />
+      )}
 
       <Form>
         <Input
