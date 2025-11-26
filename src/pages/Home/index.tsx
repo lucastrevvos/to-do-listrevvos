@@ -67,13 +67,13 @@ export function Home() {
 
   const filteredTasks = useMemo(
     () => tasks.filter((t) => t.groupId === selectedGroupId),
-    [tasks, selectedGroupId]
+    [tasks, selectedGroupId],
   );
 
   const createdCount = filteredTasks.length;
   const completedCount = useMemo(
     () => filteredTasks.filter((task) => task.completed).length,
-    [filteredTasks]
+    [filteredTasks],
   );
 
   function totalPending(all: Task[]) {
@@ -82,7 +82,7 @@ export function Home() {
 
   function handleToggleTask(id: string) {
     const updated = (tasks ?? []).map((task) =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+      task.id === id ? { ...task, completed: !task.completed } : task,
     );
 
     // reordena dentro do grupo selecionado
@@ -123,7 +123,9 @@ export function Home() {
               // Atualiza estado local: remove o grupo e remapeia tasks
               const newGroups = groups.filter((g) => g.id !== group.id);
               const newTasks = tasks.map((t) =>
-                t.groupId === group.id ? { ...t, groupId: DEFAULT_GROUP_ID } : t
+                t.groupId === group.id
+                  ? { ...t, groupId: DEFAULT_GROUP_ID }
+                  : t,
               );
 
               setGroups(newGroups);
@@ -138,12 +140,12 @@ export function Home() {
             } catch (e: any) {
               Alert.alert(
                 "Excluir grupo",
-                e?.message ?? "Não foi possível excluir o grupo"
+                e?.message ?? "Não foi possível excluir o grupo",
               );
             }
           },
         },
-      ]
+      ],
     );
   }
 
@@ -223,7 +225,7 @@ export function Home() {
 
       const hasDefault = gs.find((g) => g.id === DEFAULT_GROUP_ID);
       setSelectedGroupId(
-        hasDefault ? DEFAULT_GROUP_ID : gs[0]?.id ?? DEFAULT_GROUP_ID
+        hasDefault ? DEFAULT_GROUP_ID : gs[0]?.id ?? DEFAULT_GROUP_ID,
       );
 
       // ===== Notificações (sem agendar diário aqui)
@@ -338,7 +340,10 @@ export function Home() {
               onToggle={() => handleToggleTask(item.id)}
             />
           )}
-          contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}
+          contentContainerStyle={{
+            paddingBottom: 100,
+            ...(filteredTasks.length === 0 ? { flexGrow: 1 } : null),
+          }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={() => (
             <ListEmpty

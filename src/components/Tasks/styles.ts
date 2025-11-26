@@ -6,7 +6,6 @@ type Props = {
 };
 
 export const Container = styled.View`
-  flex: 1;
   flex-direction: row;
   justify-content: space-between;
   text-align: center;
@@ -22,7 +21,7 @@ export const Container = styled.View`
 `;
 
 export const Text = styled.Text<Props>`
-  flex: 1;
+  flex-shrink: 1;
   margin-left: 12px;
 
   ${({ theme }) => css`
