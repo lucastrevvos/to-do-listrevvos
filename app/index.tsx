@@ -1,7 +1,4 @@
 // app/index.tsx
-import { Home } from "@/src/pages/Home"; // ou "@/src/screens/Home"
-import React from "react";
+import { Home } from "@/src/pages/Home";
 
-export default function Index() {
-  return <Home />;
-}
+export default Home;

@@ -4,4 +4,9 @@ export type Task = {
   completed: boolean;
   groupId: string;
   createdAt: number;
+
+  remoteId: string;
+  remoteVersion: number;
+  dirty?: boolean;
+  deletedAt?: number;
 };

@@ -94,7 +94,10 @@ export function GroupPicker({
                 pressed && { opacity: 0.9 },
               ]}
             >
-              <ChipText>{item.title}</ChipText>
+              <ChipText>
+                {(item.scope ?? "local") === "shared" ? "👥" : ""}
+                {item.title}
+              </ChipText>
             </Pressable>
           );
         }}

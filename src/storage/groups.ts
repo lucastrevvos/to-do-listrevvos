@@ -27,7 +27,10 @@ export async function ensureDefaultGroup(): Promise<Group[]> {
   return next;
 }
 
-export async function addGroup(title: string): Promise<Group> {
+export async function addGroup(
+  title: string,
+  scope: "local" | "shared",
+): Promise<Group> {
   const groups = await loadGroups();
   const t = title.trim();
   if (!t) throw new Error("Título inválido");
@@ -45,7 +48,7 @@ export async function addGroup(title: string): Promise<Group> {
 // <<< NOVO
 export async function deleteGroupAndMoveTasks(
   groupId: string,
-  destinationId: string = DEFAULT_GROUP_ID
+  destinationId: string = DEFAULT_GROUP_ID,
 ) {
   if (groupId === DEFAULT_GROUP_ID) {
     throw new Error('O grupo "Geral" não pode ser excluído.');
@@ -59,7 +62,7 @@ export async function deleteGroupAndMoveTasks(
   // 2) Move tasks do grupo excluído para o destino (Geral)
   const tasks = await loadTasks();
   const remapped = tasks.map((t) =>
-    t.groupId === groupId ? { ...t, groupId: destinationId } : t
+    t.groupId === groupId ? { ...t, groupId: destinationId } : t,
   );
   await saveTasks(remapped);
 }

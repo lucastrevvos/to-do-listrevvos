@@ -32,12 +32,34 @@ export async function migrateIfNeeded() {
       createdAt: t.createdAt ?? Date.now(),
     }));
 
-    // 3) Persiste e avança versão do schema
-
     await AsyncStorage.multiSet([
       [STORAGE_KEYS.groups, JSON.stringify(newGroups)],
       [STORAGE_KEYS.tasks, JSON.stringify(migrated)],
       [STORAGE_KEYS.schemaVersion, "2"],
+    ]);
+  }
+
+  // ✅ NOVO: v3 adiciona scope nos grupos (default "local")
+  const rawVer2 = await AsyncStorage.getItem(STORAGE_KEYS.schemaVersion);
+  const ver2 = rawVer2 ? Number(rawVer2) : 2;
+
+  if (ver2 < 3) {
+    const groupsRaw = await AsyncStorage.getItem(STORAGE_KEYS.groups);
+    const groups: any[] = groupsRaw ? JSON.parse(groupsRaw) : [];
+
+    const migratedGroups: any[] = groups.map((g) => ({
+      ...g,
+      scope: g.scope ?? "local",
+    }));
+
+    // garante que o DEFAULT_GROUP também tem scope local
+    const fixedGroups = migratedGroups.map((g) =>
+      g.id === DEFAULT_GROUP_ID ? { ...g, scope: "local" } : g,
+    );
+
+    await AsyncStorage.multiSet([
+      [STORAGE_KEYS.groups, JSON.stringify(fixedGroups)],
+      [STORAGE_KEYS.schemaVersion, "3"],
     ]);
   }
 }

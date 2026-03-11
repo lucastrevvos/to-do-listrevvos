@@ -1,4 +1,3 @@
-// src/pages/Home/styles.ts
 import styled from "styled-components/native";
 
 export const Container = styled.View`
@@ -9,20 +8,15 @@ export const Container = styled.View`
 export const Form = styled.View`
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 
-  /* layout previsível, nada de absolute aqui */
-  padding: 0 16px;
-  margin-top: 8px;
-
-  /* garante que não fique escondido por algo acima */
+  padding: 0 20px;
+  margin-top: 12px;
   z-index: 2;
-  /* position: relative;  // se precisar sobrepor levemente, descomenta */
 `;
 
 export const Content = styled.View`
   flex: 1;
-  /* espaço pra lista respirar abaixo do form */
-  padding: 0 16px;
-  padding-top: 12px;
+  padding: 0 20px;
+  padding-top: 16px;
 `;
