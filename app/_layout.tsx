@@ -15,8 +15,6 @@ import * as Notifications from "expo-notifications";
 import { setupChannelsAndCategories } from "@/src/services/notifications";
 import theme from "@/src/theme";
 
-// ————————————————————————————————
-// Handler global de notificações (mostrar alerta na foreground)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -28,10 +26,8 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   useEffect(() => {
-    // configura canais (Android) e categorias (botões)
     setupChannelsAndCategories().catch(() => {});
 
-    // abrir deep link quando o usuário toca numa ação/notificação
     const sub = Notifications.addNotificationResponseReceivedListener(
       (resp) => {
         const url = resp.notification.request.content.data?.url as
@@ -40,6 +36,7 @@ export default function RootLayout() {
         if (url) Linking.openURL(url);
       }
     );
+
     return () => sub.remove();
   }, []);
 
@@ -48,7 +45,6 @@ export default function RootLayout() {
       <StatusBar style="light" backgroundColor={theme.COLORS.GRAY_700} />
 
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {/* evita qualquer frame branco atrás do stack */}
         <View style={{ flex: 1, backgroundColor: theme.COLORS.GRAY_700 }}>
           <Stack
             screenOptions={{

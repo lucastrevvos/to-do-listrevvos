@@ -31,14 +31,12 @@ export function JoinSharedListModal({ visible, onClose, onConfirm }: Props) {
         <Card onStartShouldSetResponder={() => true}>
           <Title>Entrar por token</Title>
 
-          <Sub>
-            Cole o token do convite para entrar em uma lista compartilhada.
-          </Sub>
+          <Sub>Cole o token do convite para entrar em uma lista compartilhada.</Sub>
 
           <TokenInput
             value={token}
             onChangeText={setToken}
-            placeholder="Ex: iceh5q4BEW61IPUpoiR4BV9MayuAe3zk"
+            placeholder="Cole o token aqui"
             placeholderTextColor="#808080"
             autoCapitalize="none"
             autoCorrect={false}

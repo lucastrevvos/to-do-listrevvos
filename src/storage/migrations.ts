@@ -54,7 +54,9 @@ export async function migrateIfNeeded() {
 
     // garante que o DEFAULT_GROUP também tem scope local
     const fixedGroups = migratedGroups.map((g) =>
-      g.id === DEFAULT_GROUP_ID ? { ...g, scope: "local" } : g,
+      g.id === DEFAULT_GROUP_ID
+        ? { ...g, scope: "local", type: g.type ?? "task" }
+        : g,
     );
 
     await AsyncStorage.multiSet([

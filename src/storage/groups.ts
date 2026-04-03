@@ -40,6 +40,7 @@ export async function addGroup(
     id: Date.now().toString(36) + Math.random().toString(36).slice(2),
     title: t,
     createdAt: Date.now(),
+    type: "task",
   };
   await saveGroups([newGroup, ...groups]);
   return newGroup;

@@ -11,15 +11,13 @@ export type CreateSharedInviteResponse = {
   webLink?: string;
 };
 
-type CreateSharedInviteInput = {
-  role?: "EDITOR" | "VIEWER";
-  expiresInDays?: number;
-  maxUses?: number;
-};
-
 export async function createSharedInvite(
   listId: string,
-  input?: CreateSharedInviteInput,
+  input?: {
+    role?: "EDITOR" | "VIEWER";
+    expiresInDays?: number;
+    maxUses?: number;
+  },
 ) {
   const { data } = await todoApi.post<CreateSharedInviteResponse>(
     `/v1/todo/shared-lists/${listId}/invites`,
@@ -29,7 +27,6 @@ export async function createSharedInvite(
       maxUses: input?.maxUses ?? 10,
     },
   );
-
   return data;
 }
 

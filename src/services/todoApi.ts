@@ -2,7 +2,7 @@ import { getOrCreateGuestId } from "@/src/storage/guest";
 import axios from "axios";
 
 export const todoApi = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.0.11:3333",
+  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.0.8:3333",
   timeout: 15000,
 });
 

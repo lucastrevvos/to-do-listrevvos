@@ -1,5 +1,7 @@
 type GroupScope = "local" | "shared";
 
+export type ListType = "shopping" | "task" | "routine";
+
 export type GroupRole = "OWNER" | "EDITOR" | "VIEWER";
 
 export type Group = {
@@ -12,4 +14,5 @@ export type Group = {
   scope?: GroupScope;
   remoteId?: string;
   role?: GroupRole;
+  type?: ListType;
 };
