@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { useTheme } from "styled-components/native";
 
+import type { Group, ListType } from "@/src/types/group";
+
 import { GroupCreateModal } from "@/src/components/GroupCreateModal";
 import { ScopeTabs, type ScopeTabValue } from "@/src/components/ScopeTabs";
 import { SharedListCreateModal } from "@/src/components/SharedListCreateModal";
@@ -24,7 +26,6 @@ import { loadTasks } from "@/src/storage/tasks";
 import { fetchSharedItems } from "@/src/services/sharedItems";
 import { createSharedList } from "@/src/services/sharedLists";
 
-import type { Group } from "@/src/types/group";
 import type { Task } from "@/src/types/task";
 
 import { joinSharedInviteByToken } from "@/src/services/sharedInvites";
@@ -235,9 +236,9 @@ export function ListsHome() {
     setShowNewGroup(true);
   }
 
-  async function handleCreateLocalList(title: string) {
+  async function handleCreateLocalList(title: string, type: ListType) {
     try {
-      const g = await addGroup(title, "local");
+      const g = await addGroup(title, "local", type);
       setGroups((prev) => [g, ...prev]);
       setShowNewGroup(false);
     } catch (e: any) {

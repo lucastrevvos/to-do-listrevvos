@@ -40,6 +40,7 @@ import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
 import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 
+import { ListType } from "@/src/types/group";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActionButton,
@@ -77,6 +78,45 @@ type Props = {
   scope: "local" | "shared";
 };
 
+function getListTypeLabel(type: ListType, isShared: boolean) {
+  if (isShared) return "Shared";
+
+  switch (type) {
+    case "shopping":
+      return "🛒 Compras";
+    case "routine":
+      return "🔁 Rotina";
+    default:
+      return "✔ Tarefas";
+  }
+}
+
+function getProgressLabel(type: ListType) {
+  switch (type) {
+    case "shopping":
+      return "itens comprados";
+    case "routine":
+      return "hábitos concluídos";
+    default:
+      return "tarefas concluídas";
+  }
+}
+
+function getMetaDescription(type: ListType, isShared: boolean) {
+  if (isShared) {
+    return "Lista colaborativa para uso em grupo.";
+  }
+
+  switch (type) {
+    case "shopping":
+      return "Lista ideal para compras e itens recorrentes.";
+    case "routine":
+      return "Lista reiniciável para hábitos e rotinas.";
+    default:
+      return "Lista pessoal para organizar suas tarefas.";
+  }
+}
+
 export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
 
@@ -87,6 +127,8 @@ export function ListDetail({ id, scope }: Props) {
 
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
   const [sharedItems, setSharedItems] = useState<SharedTodoItem[]>([]);
+
+  const [listType, setListType] = useState<ListType>("task");
 
   const [showJoinByToken, setShowJoinByToken] = useState(false);
 
@@ -103,7 +145,10 @@ export function ListDetail({ id, scope }: Props) {
         ]);
 
         const current = lists.find((l) => l.id === id);
-        if (current) setTitle(current.title);
+        if (current) {
+          setTitle(current.title);
+          setListType("task");
+        }
 
         setSharedItems(items);
         return;
@@ -115,7 +160,10 @@ export function ListDetail({ id, scope }: Props) {
       ]);
 
       const currentGroup = groups.find((g) => g.id === id);
-      if (currentGroup) setTitle(currentGroup.title);
+      if (currentGroup) {
+        setTitle(currentGroup.title);
+        setListType(currentGroup.type ?? "task");
+      }
 
       setLocalTasks(tasks.filter((t) => t.groupId === id));
     } finally {
@@ -261,6 +309,24 @@ export function ListDetail({ id, scope }: Props) {
     setLocalTasks(all.filter((t) => t.groupId === id));
   }
 
+  async function handleResetRoutine() {
+    if (isShared) return;
+    if (listType !== "routine") return;
+
+    try {
+      const allTasks = await loadTasks();
+
+      const updated = allTasks.map((task) =>
+        task.groupId === id ? { ...task, completed: false } : task,
+      );
+
+      await saveTasks(updated);
+      setLocalTasks(updated.filter((t) => t.groupId === id));
+    } catch {
+      Alert.alert("Rotina", "Não foi possível reiniciar a rotina.");
+    }
+  }
+
   async function handleShare() {
     try {
       const invite = await createSharedInvite(id);
@@ -327,30 +393,34 @@ export function ListDetail({ id, scope }: Props) {
             <Ionicons name="arrow-back" size={22} color="#FFF" />
           </BackButton>
 
-          {isShared ? (
-            <ActionsRow>
-              <ActionButton onPress={() => setShowJoinByToken(true)}>
-                <ActionButtonText>Token</ActionButtonText>
+          <ActionsRow>
+            {listType === "routine" && !isShared ? (
+              <ActionButton onPress={handleResetRoutine}>
+                <ActionButtonText>Reiniciar</ActionButtonText>
               </ActionButton>
+            ) : null}
 
-              <ActionButton onPress={handleShare}>
-                <ActionButtonText>Compartilhar</ActionButtonText>
-              </ActionButton>
-            </ActionsRow>
-          ) : null}
+            {isShared ? (
+              <>
+                <ActionButton onPress={() => setShowJoinByToken(true)}>
+                  <ActionButtonText>Token</ActionButtonText>
+                </ActionButton>
+
+                <ActionButton onPress={handleShare}>
+                  <ActionButtonText>Compartilhar</ActionButtonText>
+                </ActionButton>
+              </>
+            ) : null}
+          </ActionsRow>
         </TopRow>
 
         <ListTitle>{title}</ListTitle>
 
         <Badge shared={isShared}>
-          <BadgeText>{isShared ? "Shared" : "Local"}</BadgeText>
+          <BadgeText>{getListTypeLabel(listType, isShared)}</BadgeText>
         </Badge>
 
-        <ListMeta>
-          {isShared
-            ? "Lista colaborativa para uso em grupo."
-            : "Lista pessoal para organizar seus itens."}
-        </ListMeta>
+        <ListMeta>{getMetaDescription(listType, isShared)}</ListMeta>
 
         <ProgressBar>
           <ProgressFill progress={progress} />
@@ -360,7 +430,7 @@ export function ListDetail({ id, scope }: Props) {
           <ProgressNumber>
             {completed}/{total}
           </ProgressNumber>
-          <ProgressText>itens concluídos</ProgressText>
+          <ProgressText>{getProgressLabel(listType)}</ProgressText>
         </ProgressMeta>
 
         <QuickStatsRow>
@@ -411,7 +481,13 @@ export function ListDetail({ id, scope }: Props) {
             <EmptyWrap>
               <ListEmpty
                 title="Lista vazia"
-                text="Adicione itens para começar."
+                text={
+                  listType === "shopping"
+                    ? "Adicione itens para montar sua lista de compras."
+                    : listType === "routine"
+                      ? "Adicione hábitos para começar sua rotina."
+                      : "Adicione tarefas para começar."
+                }
               />
             </EmptyWrap>
           )}

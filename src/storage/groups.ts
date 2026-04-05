@@ -1,7 +1,7 @@
 import { DEFAULT_GROUP_ID } from "@/src/constants/app";
 import { STORAGE_KEYS } from "@/src/constants/storage";
 import { loadTasks, saveTasks } from "@/src/storage/tasks"; // <- usar tasks pra remapear
-import type { Group } from "@/src/types/group";
+import type { Group, ListType } from "@/src/types/group";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function loadGroups(): Promise<Group[]> {
@@ -29,20 +29,28 @@ export async function ensureDefaultGroup(): Promise<Group[]> {
 
 export async function addGroup(
   title: string,
-  scope: "local" | "shared",
+  scope?: string,
+  type: ListType = "task",
 ): Promise<Group> {
   const groups = await loadGroups();
+
   const t = title.trim();
+
   if (!t) throw new Error("Título inválido");
+
   const exists = groups.some((g) => g.title.toLowerCase() === t.toLowerCase());
+
   if (exists) throw new Error("Já existe um grupo com esse nome.");
+
   const newGroup: Group = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2),
     title: t,
     createdAt: Date.now(),
-    type: "task",
+    type,
   };
+
   await saveGroups([newGroup, ...groups]);
+
   return newGroup;
 }
 
