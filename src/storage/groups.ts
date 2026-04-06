@@ -1,8 +1,8 @@
 import { DEFAULT_GROUP_ID } from "@/src/constants/app";
 import { STORAGE_KEYS } from "@/src/constants/storage";
-import { loadTasks, saveTasks } from "@/src/storage/tasks"; // <- usar tasks pra remapear
 import type { Group, ListType } from "@/src/types/group";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Task } from "../types/task";
 
 export async function loadGroups(): Promise<Group[]> {
   const raw = await AsyncStorage.getItem(STORAGE_KEYS.groups);
@@ -54,24 +54,27 @@ export async function addGroup(
   return newGroup;
 }
 
-// <<< NOVO
-export async function deleteGroupAndMoveTasks(
-  groupId: string,
-  destinationId: string = DEFAULT_GROUP_ID,
-) {
+export async function removeGroup(groupId: string) {
   if (groupId === DEFAULT_GROUP_ID) {
-    throw new Error('O grupo "Geral" não pode ser excluído.');
+    throw new Error('A lista "Geral" não pode ser removida.');
   }
 
-  // 1) Atualiza lista de grupos
-  const groups = await loadGroups();
-  const nextGroups = groups.filter((g) => g.id !== groupId);
-  await saveGroups(nextGroups);
+  const groupsRaw = await AsyncStorage.getItem(STORAGE_KEYS.groups);
+  const tasksRaw = await AsyncStorage.getItem(STORAGE_KEYS.tasks);
 
-  // 2) Move tasks do grupo excluído para o destino (Geral)
-  const tasks = await loadTasks();
-  const remapped = tasks.map((t) =>
-    t.groupId === groupId ? { ...t, groupId: destinationId } : t,
-  );
-  await saveTasks(remapped);
+  const groups: Group[] = groupsRaw ? JSON.parse(groupsRaw) : [];
+  const tasks: Task[] = tasksRaw ? JSON.parse(tasksRaw) : [];
+
+  const nextGroups = groups.filter((g) => g.id !== groupId);
+  const nextTasks = tasks.filter((t) => t.groupId !== groupId);
+
+  await AsyncStorage.multiSet([
+    [STORAGE_KEYS.groups, JSON.stringify(nextGroups)],
+    [STORAGE_KEYS.tasks, JSON.stringify(nextTasks)],
+  ]);
+
+  return {
+    groups: nextGroups,
+    tasks: nextTasks,
+  };
 }

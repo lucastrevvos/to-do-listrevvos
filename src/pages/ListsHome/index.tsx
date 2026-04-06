@@ -15,7 +15,11 @@ import { GroupCreateModal } from "@/src/components/GroupCreateModal";
 import { ScopeTabs, type ScopeTabValue } from "@/src/components/ScopeTabs";
 import { SharedListCreateModal } from "@/src/components/SharedListCreateModal";
 
-import { addGroup, ensureDefaultGroup } from "@/src/storage/groups";
+import {
+  addGroup,
+  ensureDefaultGroup,
+  removeGroup,
+} from "@/src/storage/groups";
 import { migrateIfNeeded } from "@/src/storage/migrations";
 import {
   fetchSharedListsFromApi,
@@ -32,6 +36,8 @@ import { joinSharedInviteByToken } from "@/src/services/sharedInvites";
 
 import { AppHeader } from "@/src/components/AppHeader";
 import { JoinSharedListModal } from "@/src/components/JoinSharedListModal";
+import { DEFAULT_GROUP_ID } from "@/src/constants/app";
+import { Ionicons } from "@expo/vector-icons";
 import {
   Badge,
   BadgeText,
@@ -100,6 +106,8 @@ function getListTypeLabel(type?: "shopping" | "task" | "routine") {
 
 export function ListsHome() {
   const { COLORS } = useTheme();
+
+  const [showRemoveHint, setShowRemoveHint] = useState(true);
 
   const [isReady, setIsReady] = useState(false);
   const [activeTab, setActiveTab] = useState<ScopeTabValue>("local");
@@ -292,6 +300,45 @@ export function ListsHome() {
     });
   }
 
+  function confirmRemoveList(item: ListCardItem) {
+    if (item.scope !== "local") {
+      Alert.alert(
+        "Listas compartilhadas",
+        "A remoção de listas compartilhadas virá depois.",
+      );
+      return;
+    }
+
+    if (item.id === DEFAULT_GROUP_ID) {
+      Alert.alert("Lista protegida", 'A lista "Geral" não pode ser removida.');
+      return;
+    }
+
+    Alert.alert(
+      "Remover lista",
+      `A lista "${item.title}" será removida junto com todos os itens dela.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Remover",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await removeGroup(item.id);
+              setGroups(result.groups);
+              setTasks(result.tasks);
+            } catch (e: any) {
+              Alert.alert(
+                "Remover lista",
+                e?.message ?? "Não foi possível remover a lista",
+              );
+            }
+          },
+        },
+      ],
+    );
+  }
+
   if (!isReady) {
     return (
       <Container>
@@ -350,6 +397,34 @@ export function ListsHome() {
           {activeTab === "local" ? "Suas listas" : "Listas compartilhadas"}
         </SectionTitle>
 
+        {activeTab === "local" && showRemoveHint ? (
+          <View
+            style={{
+              marginBottom: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              borderRadius: 12,
+              backgroundColor: COLORS.GRAY_600,
+              borderWidth: 1,
+              borderColor: COLORS.GRAY_500,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <SectionActionText>
+                Dica: segure uma lista para remover.
+              </SectionActionText>
+            </View>
+
+            <Pressable onPress={() => setShowRemoveHint(false)}>
+              <SectionActionText>Fechar</SectionActionText>
+            </Pressable>
+          </View>
+        ) : null}
+
         {activeTab === "shared" ? (
           <View
             style={{
@@ -396,7 +471,11 @@ export function ListsHome() {
               const progress = item.total > 0 ? item.completed / item.total : 0;
 
               return (
-                <Pressable onPress={() => openList(item)}>
+                <Pressable
+                  onPress={() => openList(item)}
+                  onLongPress={() => confirmRemoveList(item)}
+                  delayLongPress={300}
+                >
                   <Card
                     accent={getListAccent("type" in item ? item.type : "task")}
                   >
@@ -424,6 +503,26 @@ export function ListsHome() {
                               )}
                         </BadgeText>
                       </Badge>
+
+                      {item.scope === "local" &&
+                      item.id !== DEFAULT_GROUP_ID ? (
+                        <Pressable
+                          onPress={() => confirmRemoveList(item)}
+                          hitSlop={8}
+                          style={{
+                            width: 28,
+                            height: 28,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Ionicons
+                            name="ellipsis-horizontal"
+                            size={18}
+                            color={COLORS.GRAY_200}
+                          />
+                        </Pressable>
+                      ) : null}
                     </View>
 
                     <CardProgressBar>
