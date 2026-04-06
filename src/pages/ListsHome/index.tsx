@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -30,6 +30,7 @@ import type { Task } from "@/src/types/task";
 
 import { joinSharedInviteByToken } from "@/src/services/sharedInvites";
 
+import { AppHeader } from "@/src/components/AppHeader";
 import { JoinSharedListModal } from "@/src/components/JoinSharedListModal";
 import {
   Badge,
@@ -53,7 +54,6 @@ import {
   ListsContainer,
   SectionActionText,
   SectionTitle,
-  TopTitle,
 } from "./styles";
 
 type LocalListCard = {
@@ -62,7 +62,7 @@ type LocalListCard = {
   title: string;
   total: number;
   completed: number;
-  type: "shopping" | "task" | "routine";
+  type: ListType;
 };
 
 type SharedListCard = {
@@ -75,6 +75,17 @@ type SharedListCard = {
 };
 
 type ListCardItem = LocalListCard | SharedListCard;
+
+function getListAccent(type?: "shopping" | "task" | "routine") {
+  switch (type) {
+    case "shopping":
+      return "shopping";
+    case "routine":
+      return "routine";
+    default:
+      return "task";
+  }
+}
 
 function getListTypeLabel(type?: "shopping" | "task" | "routine") {
   switch (type) {
@@ -183,9 +194,20 @@ export function ListsHome() {
     }
   }
 
-  useEffect(() => {
-    bootstrap();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+
+      (async () => {
+        if (cancelled) return;
+        await bootstrap();
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const localCards = useMemo<ListCardItem[]>(() => {
     return groups.map((group) => {
@@ -284,9 +306,11 @@ export function ListsHome() {
 
   return (
     <Container>
+      <AppHeader
+        title="TodoList Trevvos"
+        subtitle="Listas para compras, tarefas e rotinas"
+      />
       <HeaderBlock>
-        <TopTitle>Trevvos Lists</TopTitle>
-
         <HeroCard>
           <HeroLabel>
             {activeTab === "local"
@@ -373,7 +397,9 @@ export function ListsHome() {
 
               return (
                 <Pressable onPress={() => openList(item)}>
-                  <Card>
+                  <Card
+                    accent={getListAccent("type" in item ? item.type : "task")}
+                  >
                     <View
                       style={{
                         flexDirection: "row",
@@ -401,7 +427,12 @@ export function ListsHome() {
                     </View>
 
                     <CardProgressBar>
-                      <CardProgressFill progress={progress} />
+                      <CardProgressFill
+                        progress={progress}
+                        accent={getListAccent(
+                          "type" in item ? item.type : "task",
+                        )}
+                      />
                     </CardProgressBar>
 
                     <CardFooter>

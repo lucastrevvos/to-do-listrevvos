@@ -12,14 +12,7 @@ export const Container = styled.View`
 `;
 
 export const HeaderBlock = styled.View`
-  padding: 24px 20px 12px;
-`;
-
-export const TopTitle = styled.Text`
-  color: ${({ theme }) => theme.COLORS.WHITE};
-  font-size: 28px;
-  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
-  margin-bottom: 14px;
+  padding: 4px 20px 12px;
 `;
 
 export const HeroCard = styled.View`
@@ -67,9 +60,14 @@ export const SectionTitle = styled.Text`
   margin-bottom: 14px;
 `;
 
-export const Card = styled.View`
+export const Card = styled.View<{ accent?: "shopping" | "task" | "routine" }>`
   background-color: ${({ theme }) => theme.COLORS.GRAY_600};
-  border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
+  border: 1px solid
+    ${({ theme, accent }) => {
+      if (accent === "shopping") return theme.COLORS.BLUE_DARK;
+      if (accent === "routine") return theme.COLORS.PURPLE_DARK;
+      return theme.COLORS.GRAY_500;
+    }};
   border-radius: 18px;
   padding: 16px;
   gap: 12px;
@@ -108,10 +106,17 @@ export const CardProgressBar = styled.View`
   background-color: ${({ theme }) => theme.COLORS.GRAY_500};
 `;
 
-export const CardProgressFill = styled.View<{ progress: number }>`
+export const CardProgressFill = styled.View<{
+  progress: number;
+  accent?: "shopping" | "task" | "routine";
+}>`
   height: 100%;
   width: ${({ progress }) => `${Math.max(0, Math.min(progress, 1)) * 100}%`};
-  background-color: ${({ theme }) => theme.COLORS.BLUE};
+  background-color: ${({ theme, accent }) => {
+    if (accent === "shopping") return theme.COLORS.BLUE;
+    if (accent === "routine") return theme.COLORS.PURPLE;
+    return theme.COLORS.GRAY_300;
+  }};
   border-radius: 999px;
 `;
 

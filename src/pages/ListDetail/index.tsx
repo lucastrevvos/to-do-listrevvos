@@ -40,13 +40,12 @@ import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
 import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 
+import { AppHeader } from "@/src/components/AppHeader";
 import { ListType } from "@/src/types/group";
-import { Ionicons } from "@expo/vector-icons";
 import {
   ActionButton,
   ActionButtonText,
   ActionsRow,
-  BackButton,
   Badge,
   BadgeText,
   Container,
@@ -70,7 +69,6 @@ import {
   QuickStatsRow,
   QuickStatValue,
   StyledInput,
-  TopRow,
 } from "./styles";
 
 type Props = {
@@ -388,31 +386,37 @@ export function ListDetail({ id, scope }: Props) {
   return (
     <Container>
       <HeaderArea>
-        <TopRow>
-          <BackButton onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#FFF" />
-          </BackButton>
-
-          <ActionsRow>
-            {listType === "routine" && !isShared ? (
-              <ActionButton onPress={handleResetRoutine}>
-                <ActionButtonText>Reiniciar</ActionButtonText>
-              </ActionButton>
-            ) : null}
-
-            {isShared ? (
-              <>
-                <ActionButton onPress={() => setShowJoinByToken(true)}>
-                  <ActionButtonText>Token</ActionButtonText>
+        <AppHeader
+          title={title}
+          subtitle={
+            isShared
+              ? "Lista compartilhada do TodoList Trevvos"
+              : "Lista local do TodoList Trevvos"
+          }
+          showBackButton
+          onBackPress={() => router.back()}
+          rightAction={
+            <ActionsRow>
+              {listType === "routine" && !isShared ? (
+                <ActionButton onPress={handleResetRoutine}>
+                  <ActionButtonText>Reiniciar</ActionButtonText>
                 </ActionButton>
+              ) : null}
 
-                <ActionButton onPress={handleShare}>
-                  <ActionButtonText>Compartilhar</ActionButtonText>
-                </ActionButton>
-              </>
-            ) : null}
-          </ActionsRow>
-        </TopRow>
+              {isShared ? (
+                <>
+                  <ActionButton onPress={() => setShowJoinByToken(true)}>
+                    <ActionButtonText>Token</ActionButtonText>
+                  </ActionButton>
+
+                  <ActionButton onPress={handleShare}>
+                    <ActionButtonText>Compartilhar</ActionButtonText>
+                  </ActionButton>
+                </>
+              ) : null}
+            </ActionsRow>
+          }
+        />
 
         <ListTitle>{title}</ListTitle>
 
