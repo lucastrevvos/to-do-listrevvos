@@ -7,7 +7,7 @@ export const Container = styled.ScrollView.attrs({
 })`
   flex: 1;
   background-color: ${({ theme }) => theme.COLORS.GRAY_700};
-  padding: 24px 20px 0;
+  padding: 0 20px 0;
 `;
 
 export const HeroCard = styled.View`
@@ -15,10 +15,11 @@ export const HeroCard = styled.View`
   border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
   border-radius: 22px;
   padding: 18px;
+  margin-top: 6px;
   margin-bottom: 20px;
 `;
 
-export const HeroBadge = styled.View`
+export const Badge = styled.View`
   align-self: flex-start;
   background-color: ${({ theme }) => theme.COLORS.BLUE_DARK};
   padding: 6px 10px;
@@ -26,7 +27,7 @@ export const HeroBadge = styled.View`
   margin-bottom: 12px;
 `;
 
-export const HeroBadgeText = styled.Text`
+export const BadgeText = styled.Text`
   color: ${({ theme }) => theme.COLORS.WHITE};
   font-size: 11px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
@@ -77,7 +78,7 @@ export const CardDescription = styled.Text`
 `;
 
 export const ItemRow = styled.View`
-  margin-bottom: 14px;
+  margin-top: 8px;
 `;
 
 export const ItemTitle = styled.Text`
@@ -98,6 +99,6 @@ export const AppVersion = styled.Text`
   color: ${({ theme }) => theme.COLORS.GRAY_300};
   font-size: 12px;
   text-align: center;
-  margin-top: 2px;
+  margin-top: 6px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
 `;
