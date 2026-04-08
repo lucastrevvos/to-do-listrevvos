@@ -11,6 +11,19 @@ export const TopRow = styled.View`
   justify-content: space-between;
 `;
 
+export const LeftColumn = styled.View`
+  flex: 1;
+  flex-direction: row;
+  align-items: flex-start;
+  min-width: 0;
+  padding-right: 12px;
+`;
+
+export const TextColumn = styled.View`
+  flex: 1;
+  min-width: 0;
+`;
+
 export const BackButton = styled.Pressable`
   width: 38px;
   height: 38px;
@@ -38,5 +51,7 @@ export const Subtitle = styled.Text`
 `;
 
 export const ActionWrap = styled.View`
-  margin-left: 12px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-left: 4px;
 `;

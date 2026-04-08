@@ -41,11 +41,11 @@ import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 
 import { AppHeader } from "@/src/components/AppHeader";
+import { deleteSharedList, leaveSharedList } from "@/src/services/sharedLists";
 import { ListType } from "@/src/types/group";
+import { Ionicons } from "@expo/vector-icons";
 import {
   ActionButton,
-  ActionButtonText,
-  ActionsRow,
   Badge,
   BadgeText,
   Container,
@@ -132,6 +132,8 @@ export function ListDetail({ id, scope }: Props) {
 
   const isShared = scope === "shared";
 
+  const [role, setRole] = useState<"OWNER" | "EDITOR" | null>(null);
+
   const bootstrap = useCallback(async () => {
     try {
       setLoading(true);
@@ -143,9 +145,11 @@ export function ListDetail({ id, scope }: Props) {
         ]);
 
         const current = lists.find((l) => l.id === id);
+
         if (current) {
           setTitle(current.title);
           setListType("task");
+          setRole(current.role);
         }
 
         setSharedItems(items);
@@ -267,6 +271,38 @@ export function ListDetail({ id, scope }: Props) {
     }
   }
 
+  async function handleLeave() {
+    Alert.alert("Sair da lista", "Você deixará de participar desta lista.", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Sair",
+        style: "destructive",
+        onPress: async () => {
+          await leaveSharedList(id);
+          router.back();
+        },
+      },
+    ]);
+  }
+
+  async function handleDeleteShared() {
+    Alert.alert(
+      "Excluir lista",
+      "Essa ação remove a lista para todos os participantes.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            await deleteSharedList(id);
+            router.back();
+          },
+        },
+      ],
+    );
+  }
+
   async function handleToggle(idItem: string) {
     if (isShared) {
       const current = sharedItems.find((i) => i.id === idItem);
@@ -342,6 +378,43 @@ export function ListDetail({ id, scope }: Props) {
     }
   }
 
+  function openMenu() {
+    const options = [];
+
+    if (role === "OWNER") {
+      options.push({
+        text: "Excluir lista",
+        style: "destructive",
+        onPress: handleDeleteShared,
+      });
+    }
+
+    if (role === "EDITOR") {
+      options.push({
+        text: "Sair da lista",
+        style: "destructive",
+        onPress: handleLeave,
+      });
+    }
+
+    options.push({
+      text: "Compartilhar",
+      onPress: handleShare,
+    });
+
+    options.push({
+      text: "Ver token",
+      onPress: () => setShowJoinByToken(true),
+    });
+
+    options.push({
+      text: "Cancelar",
+      style: "cancel",
+    });
+
+    Alert.alert("Opções da lista", "", options);
+  }
+
   async function handleJoinByToken(token: string) {
     try {
       const result = await joinSharedInviteByToken(token);
@@ -396,25 +469,11 @@ export function ListDetail({ id, scope }: Props) {
           showBackButton
           onBackPress={() => router.back()}
           rightAction={
-            <ActionsRow>
-              {listType === "routine" && !isShared ? (
-                <ActionButton onPress={handleResetRoutine}>
-                  <ActionButtonText>Reiniciar</ActionButtonText>
-                </ActionButton>
-              ) : null}
-
-              {isShared ? (
-                <>
-                  <ActionButton onPress={() => setShowJoinByToken(true)}>
-                    <ActionButtonText>Token</ActionButtonText>
-                  </ActionButton>
-
-                  <ActionButton onPress={handleShare}>
-                    <ActionButtonText>Compartilhar</ActionButtonText>
-                  </ActionButton>
-                </>
-              ) : null}
-            </ActionsRow>
+            isShared ? (
+              <ActionButton onPress={openMenu}>
+                <Ionicons name="ellipsis-horizontal" size={20} color="#FFF" />
+              </ActionButton>
+            ) : null
           }
         />
 

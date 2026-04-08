@@ -6,7 +6,7 @@ const STORAGE_KEY = "@trevvos/sharedLists";
 export type SharedList = {
   id: string;
   title: string;
-  role: "OWNER" | "EDITOR" | "VIEWER";
+  role: "OWNER" | "EDITOR";
 };
 
 /**
@@ -16,9 +16,7 @@ export type SharedList = {
  */
 export async function fetchSharedListsFromApi(): Promise<SharedList[]> {
   try {
-    const { data } = await todoApi.get<SharedList[]>(
-      "/v1/todo/shared-lists"
-    );
+    const { data } = await todoApi.get<SharedList[]>("/v1/todo/shared-lists");
 
     // salva cache
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
