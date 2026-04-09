@@ -82,6 +82,19 @@ type SharedListCard = {
 
 type ListCardItem = LocalListCard | SharedListCard;
 
+function getRoleLabel(role: "OWNER" | "EDITOR" | "VIEWER") {
+  switch (role) {
+    case "OWNER":
+      return "Dono";
+    case "EDITOR":
+      return "Editor";
+    case "VIEWER":
+      return "Leitor";
+    default:
+      return "";
+  }
+}
+
 function getListAccent(type?: "shopping" | "task" | "routine") {
   switch (type) {
     case "shopping":
@@ -497,7 +510,7 @@ export function ListsHome() {
                       <Badge shared={item.scope === "shared"}>
                         <BadgeText>
                           {item.scope === "shared"
-                            ? "Shared"
+                            ? "Compartilhada"
                             : getListTypeLabel(
                                 "type" in item ? item.type : "task",
                               )}
@@ -543,7 +556,7 @@ export function ListsHome() {
 
                       {item.scope === "shared" ? (
                         <CardSubtitle>
-                          {"role" in item ? item.role : ""}
+                          {"role" in item ? getRoleLabel(item.role) : ""}
                         </CardSubtitle>
                       ) : null}
                     </CardFooter>

@@ -77,7 +77,7 @@ type Props = {
 };
 
 function getListTypeLabel(type: ListType, isShared: boolean) {
-  if (isShared) return "Shared";
+  if (isShared) return "Compartilhada";
 
   switch (type) {
     case "shopping":

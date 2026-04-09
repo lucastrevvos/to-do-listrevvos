@@ -7,7 +7,7 @@ export const Container = styled.ScrollView.attrs({
 })`
   flex: 1;
   background-color: ${({ theme }) => theme.COLORS.GRAY_700};
-  padding: 24px 20px 0;
+  padding: 0 20px 0;
 `;
 
 export const HeroCard = styled.View`
@@ -15,6 +15,7 @@ export const HeroCard = styled.View`
   border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
   border-radius: 22px;
   padding: 18px;
+  margin-top: 6px;
   margin-bottom: 20px;
 `;
 

@@ -1,3 +1,4 @@
+import { AppHeader } from "@/src/components/AppHeader";
 import React from "react";
 import {
   Badge,
@@ -23,64 +24,79 @@ import {
 export function AIPage() {
   return (
     <Container>
+      <AppHeader
+        title="IA"
+        subtitle="Os recursos inteligentes chegarão na v3 do TodoList Trevvos"
+      />
+
       <HeroCard>
         <Badge>
           <BadgeText>Premium</BadgeText>
         </Badge>
 
-        <HeroLabel>Assistente Trevvos</HeroLabel>
-        <HeroTitle>IA para transformar listas em algo inteligente</HeroTitle>
+        <HeroLabel>Próxima evolução do app</HeroLabel>
+        <HeroTitle>
+          IA para transformar listas em algo realmente inteligente
+        </HeroTitle>
         <HeroText>
-          Em breve, o Trevvos vai gerar listas, sugerir itens, organizar
-          compras e ajudar você a planejar tarefas com inteligência.
+          A versão atual foca em listas, colaboração e organização. Na v3, o
+          TodoList Trevvos vai ganhar recursos premium com IA para gerar,
+          melhorar e sugerir listas automaticamente.
         </HeroText>
       </HeroCard>
 
-      <SectionTitle>O que vem aí</SectionTitle>
+      <SectionTitle>O que virá na v3</SectionTitle>
 
       <FeatureCard>
-        <FeatureTitle>✨ Gerar lista com IA</FeatureTitle>
+        <FeatureTitle>✨ Gerar lista por objetivo</FeatureTitle>
         <FeatureDescription>
-          Crie listas a partir de comandos como: “lista de compras para 1 semana”
-          ou “checklist de viagem para praia”.
+          Exemplo: “manhã saudável”, “checklist de viagem”, “lista de compras
+          para uma semana” ou “planejamento para churrasco”.
         </FeatureDescription>
       </FeatureCard>
 
       <FeatureCard>
-        <FeatureTitle>🧠 Sugerir itens automaticamente</FeatureTitle>
+        <FeatureTitle>🧠 Transformar texto em lista</FeatureTitle>
         <FeatureDescription>
-          A IA poderá sugerir itens com base no contexto da lista e no seu
-          histórico de uso.
+          Escreva algo solto e a IA organiza em itens claros e prontos para uso.
         </FeatureDescription>
       </FeatureCard>
 
       <FeatureCard>
-        <FeatureTitle>🛒 Organizar listas por contexto</FeatureTitle>
+        <FeatureTitle>🛒 Sugerir itens faltando</FeatureTitle>
         <FeatureDescription>
-          Exemplo: separar uma lista de compras por hortifruti, padaria,
-          limpeza e mercado.
+          A IA poderá completar listas com base no contexto e no tipo da lista:
+          compras, tarefas ou rotinas.
         </FeatureDescription>
       </FeatureCard>
 
-      <SectionTitle>Premium</SectionTitle>
+      <FeatureCard>
+        <FeatureTitle>🔁 Rotinas inteligentes</FeatureTitle>
+        <FeatureDescription>
+          Listas de rotina poderão ser sugeridas e ajustadas para objetivos como
+          foco, saúde, organização e hábitos diários.
+        </FeatureDescription>
+      </FeatureCard>
+
+      <SectionTitle>Plano premium</SectionTitle>
 
       <PremiumCard>
         <PremiumTitle>Recursos premium com IA</PremiumTitle>
         <PremiumDescription>
-          A versão premium vai liberar assistente inteligente, automações,
-          organização avançada e sugestões personalizadas.
+          A IA será liberada como parte da evolução premium do app, trazendo
+          geração de listas, organização avançada e sugestões inteligentes.
         </PremiumDescription>
       </PremiumCard>
 
       <Card>
         <CardTitle>Estado atual</CardTitle>
         <CardDescription>
-          O núcleo colaborativo já está funcionando. A próxima evolução será
-          colocar a inteligência em cima das listas.
+          Nesta v2, o foco está em consolidar a base do produto: listas locais,
+          compartilhadas, tipos de lista e experiência de uso.
         </CardDescription>
       </Card>
 
-      <FooterText>Em breve disponível dentro do Trevvos.</FooterText>
+      <FooterText>TodoList Trevvos • IA prevista para a v3</FooterText>
     </Container>
   );
 }
