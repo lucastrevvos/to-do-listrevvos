@@ -13,7 +13,10 @@ import { TaskStatus } from "@/src/components/TaskStatus";
 import { useFocusEffect } from "@react-navigation/native";
 import { router, useLocalSearchParams } from "expo-router";
 
-import { createSharedInvite, joinSharedInviteByToken } from "@/src/services/sharedInvites";
+import {
+  createSharedInvite,
+  joinSharedInviteByToken,
+} from "@/src/services/sharedInvites";
 
 import {
   ActivityIndicator,
@@ -324,55 +327,58 @@ export function Home() {
         e?.response?.data?.message ?? "Não foi possível entrar na lista",
       );
     }
-}
+  }
 
   async function handleShareSharedList() {
-  try {
-    const listId = getSelectedSharedListId();
-    if (!listId) {
-      Alert.alert("Compartilhar", "Selecione uma lista compartilhada primeiro.");
-      return;
+    try {
+      const listId = getSelectedSharedListId();
+      if (!listId) {
+        Alert.alert(
+          "Compartilhar",
+          "Selecione uma lista compartilhada primeiro.",
+        );
+        return;
+      }
+
+      const currentGroup = sharedGroups.find((g) => g.id === selectedGroupId);
+      const listTitle = currentGroup?.title ?? "Lista compartilhada";
+
+      const invite = await createSharedInvite(listId, {
+        role: "EDITOR",
+        expiresInDays: 7,
+        maxUses: 10,
+      });
+
+      const deepLink =
+        invite.deepLink ?? `todolistrevvos://todo/invite/${invite.token}`;
+
+      const webLink =
+        invite.webLink ?? `https://trevvos.com.br/invite/${invite.token}`;
+
+      const message =
+        `Convite para colaborar na lista "${listTitle}"\n\n` +
+        `👉 Abra o convite: \n${webLink}\n` +
+        `Caso não abra automaticamente, use este token no app:\n\n ${invite.token}`;
+
+      await Share.share({
+        message,
+        title: `Compartilhar lista: ${listTitle}`,
+      });
+    } catch (e: any) {
+      console.log("createSharedInvite error:", {
+        message: e?.message,
+        code: e?.code,
+        status: e?.response?.status,
+        data: e?.response?.data,
+        url: e?.config?.baseURL + e?.config?.url,
+      });
+
+      Alert.alert(
+        "Compartilhar lista",
+        e?.response?.data?.message ?? "Não foi possível gerar o convite",
+      );
     }
-
-    const currentGroup = sharedGroups.find((g) => g.id === selectedGroupId);
-    const listTitle = currentGroup?.title ?? "Lista compartilhada";
-
-    const invite = await createSharedInvite(listId, {
-      role: "EDITOR",
-      expiresInDays: 7,
-      maxUses: 10,
-    });
-
-    const deepLink =
-      invite.deepLink ?? `todolistrevvos://todo/invite/${invite.token}`;
-
-    const webLink =
-      invite.webLink ?? `https://trevvos.com.br/todo/invite/${invite.token}`;
-
-    const message =
-      `Convite para colaborar na lista "${listTitle}"\n\n` +
-      `Abrir no app: ${deepLink}\n` +
-      `Fallback web: ${webLink}`;
-
-    await Share.share({
-      message,
-      title: `Compartilhar lista: ${listTitle}`,
-    });
-  } catch (e: any) {
-    console.log("createSharedInvite error:", {
-      message: e?.message,
-      code: e?.code,
-      status: e?.response?.status,
-      data: e?.response?.data,
-      url: e?.config?.baseURL + e?.config?.url,
-    });
-
-    Alert.alert(
-      "Compartilhar lista",
-      e?.response?.data?.message ?? "Não foi possível gerar o convite",
-    );
   }
-}
 
   async function handleToggleTask(id: string) {
     // ===== SHARED
@@ -624,28 +630,28 @@ export function Home() {
       />
 
       {activeTab === "shared" ? (
-  <View
-    style={{
-      paddingHorizontal: 20,
-      paddingTop: 8,
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      gap: 8,
-    }}
-  >
-    <ButtonIcon
-      icon="enter-outline"
-      onPress={() => setShowJoinSharedList(true)}
-    />
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingTop: 8,
+            flexDirection: "row",
+            justifyContent: "flex-end",
+            gap: 8,
+          }}
+        >
+          <ButtonIcon
+            icon="enter-outline"
+            onPress={() => setShowJoinSharedList(true)}
+          />
 
-    {selectedSharedListId ? (
-      <ButtonIcon
-        icon="share-social-outline"
-        onPress={handleShareSharedList}
-      />
-    ) : null}
-  </View>
-) : null}
+          {selectedSharedListId ? (
+            <ButtonIcon
+              icon="share-social-outline"
+              onPress={handleShareSharedList}
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       {showDeleteHint && (
         <HintBanner
@@ -671,7 +677,10 @@ export function Home() {
       </Form>
 
       <Content>
-        <TaskStatus createdCount={createdCount} completedCount={completedCount} />
+        <TaskStatus
+          createdCount={createdCount}
+          completedCount={completedCount}
+        />
 
         {/* Spinner no lugar da lista quando sharedLoading */}
         {activeTab === "shared" && sharedLoading ? (
