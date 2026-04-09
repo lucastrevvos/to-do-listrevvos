@@ -41,7 +41,7 @@ export async function ensurePermissionsSoft() {
     if (r.granted) {
       await AsyncStorage.setItem(
         NOTI_KEYS.permissionGrantedAt,
-        String(Date.now())
+        String(Date.now()),
       );
     }
     return !!r.granted;
@@ -105,7 +105,7 @@ export async function markInteraction() {
  */
 async function canScheduleDailyNudge(): Promise<boolean> {
   const grantedAtRaw = await AsyncStorage.getItem(
-    NOTI_KEYS.permissionGrantedAt
+    NOTI_KEYS.permissionGrantedAt,
   );
   if (grantedAtRaw) {
     const grantedAt = Number(grantedAtRaw);
@@ -117,7 +117,7 @@ async function canScheduleDailyNudge(): Promise<boolean> {
   if (last === today) return false;
 
   const lastInter = Number(
-    (await AsyncStorage.getItem(NOTI_KEYS.lastInteractionAt)) || "0"
+    (await AsyncStorage.getItem(NOTI_KEYS.lastInteractionAt)) || "0",
   );
   if (lastInter && Date.now() - lastInter < 10 * 60 * 1000) return false;
 
@@ -145,8 +145,8 @@ export async function scheduleDailyIfPending(pendingCount: number) {
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Você tem tarefas esperando por você.",
-      body: "Abra o Trevvos e conclua uma hoje.",
+      title: "Você tem tarefas pendentes.",
+      body: "Abra o TodoList Trevvos e conclua uma hoje.",
       categoryIdentifier: "trevvos-reminders",
       data: { kind: "daily", url: "trevvos://pending" },
     },
@@ -223,7 +223,7 @@ export async function scheduleOnboardingNudgeIfNeeded() {
  */
 export async function maybeInactivityNudge() {
   const lastOpen = Number(
-    (await AsyncStorage.getItem(NOTI_KEYS.lastOpenAt)) || "0"
+    (await AsyncStorage.getItem(NOTI_KEYS.lastOpenAt)) || "0",
   );
   if (!lastOpen) return;
 
@@ -257,7 +257,7 @@ export async function maybeInactivityNudge() {
 export async function scheduleWeeklyDigest(
   pending: number,
   created: number,
-  done: number
+  done: number,
 ) {
   // calcula próximo domingo às 19:00
   const now = new Date();
@@ -272,7 +272,7 @@ export async function scheduleWeeklyDigest(
   await Promise.all(
     scheduled
       .filter((n) => n.content?.data?.kind === "weekly")
-      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
   );
 
   await Notifications.scheduleNotificationAsync({
@@ -284,4 +284,27 @@ export async function scheduleWeeklyDigest(
     },
     trigger: { date: fire, repeats: true } as any, // semanal
   });
+}
+
+type NotifiableTask = {
+  completed: boolean;
+  groupId: string;
+};
+
+type NotifiableGroup = {
+  id: string;
+  type?: "shopping" | "task" | "routine";
+};
+
+export function getNotifiablePendingCount(
+  tasks: NotifiableTask[],
+  groups: NotifiableGroup[],
+) {
+  const allowedGroupIds = groups
+    .filter((g) => (g.type ?? "task") === "task")
+    .map((g) => g.id);
+
+  return tasks.filter(
+    (task) => !task.completed && allowedGroupIds.includes(task.groupId),
+  ).length;
 }

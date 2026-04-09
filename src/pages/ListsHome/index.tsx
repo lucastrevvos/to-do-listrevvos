@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Pressable,
   View,
@@ -14,6 +15,14 @@ import type { Group, ListType } from "@/src/types/group";
 import { GroupCreateModal } from "@/src/components/GroupCreateModal";
 import { ScopeTabs, type ScopeTabValue } from "@/src/components/ScopeTabs";
 import { SharedListCreateModal } from "@/src/components/SharedListCreateModal";
+
+import {
+  ensurePermissionsSoft,
+  getNotifiablePendingCount,
+  markInteraction,
+  maybeScheduleOnBackground,
+  recordAppOpen,
+} from "@/src/services/notifications";
 
 import {
   addGroup,
@@ -150,6 +159,8 @@ export function ListsHome() {
       setTasks(ts);
 
       await refreshSharedLists();
+      setActiveTab("shared");
+      await markInteraction();
     } finally {
       setIsReady(true);
     }
@@ -230,6 +241,24 @@ export function ListsHome() {
     }, []),
   );
 
+  useEffect(() => {
+    recordAppOpen().catch(() => {});
+    ensurePermissionsSoft().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state === "background" || state === "inactive") {
+        const pendingCount = getNotifiablePendingCount(tasks, groups);
+        if (pendingCount > 0) {
+          await maybeScheduleOnBackground(pendingCount);
+        }
+      }
+    });
+
+    return () => sub.remove();
+  }, [tasks, groups]);
+
   const localCards = useMemo<ListCardItem[]>(() => {
     return groups.map((group) => {
       const groupTasks = tasks.filter((t) => t.groupId === group.id);
@@ -284,6 +313,8 @@ export function ListsHome() {
       const g = await addGroup(title, "local", type);
       setGroups((prev) => [g, ...prev]);
       setShowNewGroup(false);
+
+      await markInteraction();
     } catch (e: any) {
       Alert.alert("Nova lista", e?.message ?? "Não foi possível criar a lista");
     }
@@ -295,6 +326,8 @@ export function ListsHome() {
       setShowNewSharedList(false);
       await refreshSharedLists();
       setActiveTab("shared");
+
+      await markInteraction();
     } catch (e: any) {
       Alert.alert(
         "Nova lista compartilhada",
@@ -340,6 +373,8 @@ export function ListsHome() {
               const result = await removeGroup(item.id);
               setGroups(result.groups);
               setTasks(result.tasks);
+
+              await markInteraction();
             } catch (e: any) {
               Alert.alert(
                 "Remover lista",

@@ -367,10 +367,8 @@ export function ListDetail({ id, scope }: Props) {
 
       const message =
         `Convite para colaborar na lista "${title}"\n\n` +
-        `Token:\n${invite.token}\n\n` +
-        `Se o link não abrir, use "Entrar por token" no app.\n\n` +
-        `Abrir no app:\n` +
-        `todolistrevvos://todo/invite/${invite.token}`;
+        `👉 Abra o convite: \nhttps://trevvos.com.br/invite/${invite.token}\n\n` +
+        `Caso não abra automaticamente, use este token no app:\n\n ${invite.token}`;
 
       await Share.share({ message });
     } catch {
