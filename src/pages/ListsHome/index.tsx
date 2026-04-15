@@ -10,20 +10,26 @@ import {
 } from "react-native";
 import { useTheme } from "styled-components/native";
 
-import type { Group, ListType } from "@/src/types/group";
+import { Ionicons } from "@expo/vector-icons";
 
+import { AppHeader } from "@/src/components/AppHeader";
 import { GroupCreateModal } from "@/src/components/GroupCreateModal";
+import { JoinSharedListModal } from "@/src/components/JoinSharedListModal";
 import { ScopeTabs, type ScopeTabValue } from "@/src/components/ScopeTabs";
 import { SharedListCreateModal } from "@/src/components/SharedListCreateModal";
-
+import { DEFAULT_GROUP_ID } from "@/src/constants/app";
 import {
-  ensurePermissionsSoft,
   getNotifiablePendingCount,
   markInteraction,
   maybeScheduleOnBackground,
-  recordAppOpen,
 } from "@/src/services/notifications";
-
+import { joinSharedInviteByToken } from "@/src/services/sharedInvites";
+import { fetchSharedItems } from "@/src/services/sharedItems";
+import {
+  createSharedList,
+  deleteSharedList,
+  leaveSharedList,
+} from "@/src/services/sharedLists";
 import {
   addGroup,
   ensureDefaultGroup,
@@ -35,18 +41,9 @@ import {
   type SharedList,
 } from "@/src/storage/sharedLists";
 import { loadTasks } from "@/src/storage/tasks";
-
-import { fetchSharedItems } from "@/src/services/sharedItems";
-import { createSharedList } from "@/src/services/sharedLists";
-
+import type { Group, ListType } from "@/src/types/group";
 import type { Task } from "@/src/types/task";
 
-import { joinSharedInviteByToken } from "@/src/services/sharedInvites";
-
-import { AppHeader } from "@/src/components/AppHeader";
-import { JoinSharedListModal } from "@/src/components/JoinSharedListModal";
-import { DEFAULT_GROUP_ID } from "@/src/constants/app";
-import { Ionicons } from "@expo/vector-icons";
 import {
   Badge,
   BadgeText,
@@ -145,50 +142,7 @@ export function ListsHome() {
 
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewSharedList, setShowNewSharedList] = useState(false);
-
   const [showJoinSharedList, setShowJoinSharedList] = useState(false);
-
-  async function bootstrap() {
-    try {
-      await migrateIfNeeded();
-
-      const gs = await ensureDefaultGroup();
-      const ts = await loadTasks();
-
-      setGroups(gs);
-      setTasks(ts);
-
-      await refreshSharedLists();
-      setActiveTab("shared");
-      await markInteraction();
-    } finally {
-      setIsReady(true);
-    }
-  }
-
-  async function handleJoinByToken(token: string) {
-    try {
-      const result = await joinSharedInviteByToken(token);
-
-      setShowJoinSharedList(false);
-
-      await refreshSharedLists();
-      setActiveTab("shared");
-
-      router.push({
-        pathname: "/lists/[id]",
-        params: {
-          id: result.listId,
-          scope: "shared",
-        },
-      });
-    } catch (e: any) {
-      Alert.alert(
-        "Entrar por token",
-        e?.response?.data?.message ?? "Não foi possível entrar na lista",
-      );
-    }
-  }
 
   async function refreshSharedLists() {
     try {
@@ -201,11 +155,12 @@ export function ListsHome() {
         lists.map(async (list) => {
           try {
             const items = await fetchSharedItems(list.id);
+
             return [
               list.id,
               {
                 total: items.length,
-                completed: items.filter((i) => i.isDone).length,
+                completed: items.filter((item) => item.isDone).length,
               },
             ] as const;
           } catch {
@@ -215,14 +170,32 @@ export function ListsHome() {
       );
 
       setSharedCounts(Object.fromEntries(countsEntries));
-    } catch (e: any) {
+    } catch (error: any) {
       Alert.alert(
         "Listas compartilhadas",
-        e?.response?.data?.message ??
+        error?.response?.data?.message ??
           "Não foi possível carregar as listas compartilhadas",
       );
     } finally {
       setSharedLoading(false);
+    }
+  }
+
+  async function bootstrap() {
+    try {
+      await migrateIfNeeded();
+
+      const loadedGroups = await ensureDefaultGroup();
+      const loadedTasks = await loadTasks();
+
+      setGroups(loadedGroups);
+      setTasks(loadedTasks);
+
+      await refreshSharedLists();
+      setActiveTab("local");
+      await markInteraction();
+    } finally {
+      setIsReady(true);
     }
   }
 
@@ -242,17 +215,10 @@ export function ListsHome() {
   );
 
   useEffect(() => {
-    recordAppOpen().catch(() => {});
-    ensurePermissionsSoft().catch(() => {});
-  }, []);
-
-  useEffect(() => {
     const sub = AppState.addEventListener("change", async (state) => {
       if (state === "background" || state === "inactive") {
         const pendingCount = getNotifiablePendingCount(tasks, groups);
-        if (pendingCount > 0) {
-          await maybeScheduleOnBackground(pendingCount);
-        }
+        await maybeScheduleOnBackground(pendingCount);
       }
     });
 
@@ -261,8 +227,8 @@ export function ListsHome() {
 
   const localCards = useMemo<ListCardItem[]>(() => {
     return groups.map((group) => {
-      const groupTasks = tasks.filter((t) => t.groupId === group.id);
-      const completed = groupTasks.filter((t) => t.completed).length;
+      const groupTasks = tasks.filter((task) => task.groupId === group.id);
+      const completed = groupTasks.filter((task) => task.completed).length;
 
       return {
         id: group.id,
@@ -310,13 +276,16 @@ export function ListsHome() {
 
   async function handleCreateLocalList(title: string, type: ListType) {
     try {
-      const g = await addGroup(title, "local", type);
-      setGroups((prev) => [g, ...prev]);
+      const group = await addGroup(title, "local", type);
+      setGroups((prev) => [group, ...prev]);
       setShowNewGroup(false);
 
       await markInteraction();
-    } catch (e: any) {
-      Alert.alert("Nova lista", e?.message ?? "Não foi possível criar a lista");
+    } catch (error: any) {
+      Alert.alert(
+        "Nova lista",
+        error?.message ?? "Não foi possível criar a lista",
+      );
     }
   }
 
@@ -324,14 +293,39 @@ export function ListsHome() {
     try {
       await createSharedList(title);
       setShowNewSharedList(false);
+
       await refreshSharedLists();
       setActiveTab("shared");
 
       await markInteraction();
-    } catch (e: any) {
+    } catch (error: any) {
       Alert.alert(
         "Nova lista compartilhada",
-        e?.response?.data?.message ?? "Não foi possível criar a lista",
+        error?.response?.data?.message ?? "Não foi possível criar a lista",
+      );
+    }
+  }
+
+  async function handleJoinByToken(token: string) {
+    try {
+      const result = await joinSharedInviteByToken(token);
+
+      setShowJoinSharedList(false);
+
+      await refreshSharedLists();
+      setActiveTab("shared");
+
+      router.push({
+        pathname: "/lists/[id]",
+        params: {
+          id: result.listId,
+          scope: "shared",
+        },
+      });
+    } catch (error: any) {
+      Alert.alert(
+        "Entrar por token",
+        error?.response?.data?.message ?? "Não foi possível entrar na lista",
       );
     }
   }
@@ -375,16 +369,71 @@ export function ListsHome() {
               setTasks(result.tasks);
 
               await markInteraction();
-            } catch (e: any) {
+            } catch (error: any) {
               Alert.alert(
                 "Remover lista",
-                e?.message ?? "Não foi possível remover a lista",
+                error?.message ?? "Não foi possível remover a lista",
               );
             }
           },
         },
       ],
     );
+  }
+
+  function openSharedListMenu(item: ListCardItem) {
+    if (item.scope !== "shared") return;
+
+    const options: {
+      text: string;
+      style?: "default" | "cancel" | "destructive";
+      onPress?: () => void;
+    }[] = [];
+
+    if ("role" in item && item.role === "OWNER") {
+      options.push({
+        text: "Excluir lista",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteSharedList(item.id);
+            await refreshSharedLists();
+          } catch (error: any) {
+            Alert.alert(
+              "Excluir lista",
+              error?.response?.data?.message ??
+                "Não foi possível excluir a lista",
+            );
+          }
+        },
+      });
+    }
+
+    if ("role" in item && item.role === "EDITOR") {
+      options.push({
+        text: "Sair da lista",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await leaveSharedList(item.id);
+            await refreshSharedLists();
+          } catch (error: any) {
+            Alert.alert(
+              "Sair da lista",
+              error?.response?.data?.message ??
+                "Não foi possível sair da lista",
+            );
+          }
+        },
+      });
+    }
+
+    options.push({
+      text: "Cancelar",
+      style: "cancel",
+    });
+
+    Alert.alert("Opções da lista", "", options);
   }
 
   if (!isReady) {
@@ -405,6 +454,7 @@ export function ListsHome() {
         title="TodoList Trevvos"
         subtitle="Listas para compras, tarefas e rotinas"
       />
+
       <HeaderBlock>
         <HeroCard>
           <HeroLabel>
@@ -521,7 +571,11 @@ export function ListsHome() {
               return (
                 <Pressable
                   onPress={() => openList(item)}
-                  onLongPress={() => confirmRemoveList(item)}
+                  onLongPress={() => {
+                    if (item.scope === "local") {
+                      confirmRemoveList(item);
+                    }
+                  }}
                   delayLongPress={300}
                 >
                   <Card
@@ -552,10 +606,17 @@ export function ListsHome() {
                         </BadgeText>
                       </Badge>
 
-                      {item.scope === "local" &&
-                      item.id !== DEFAULT_GROUP_ID ? (
+                      {(item.scope === "local" &&
+                        item.id !== DEFAULT_GROUP_ID) ||
+                      item.scope === "shared" ? (
                         <Pressable
-                          onPress={() => confirmRemoveList(item)}
+                          onPress={() => {
+                            if (item.scope === "local") {
+                              confirmRemoveList(item);
+                            } else {
+                              openSharedListMenu(item);
+                            }
+                          }}
                           hitSlop={8}
                           style={{
                             width: 28,

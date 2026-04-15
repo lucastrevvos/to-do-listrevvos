@@ -4,6 +4,7 @@ import axios from "axios";
 export const todoApi = axios.create({
   baseURL:
     process.env.EXPO_PUBLIC_API_URL ?? "https://trevvos-api.onrender.com",
+
   timeout: 15000,
 });
 

@@ -125,8 +125,8 @@ export const QuickStat = styled.View`
   flex: 1;
   background-color: ${({ theme }) => theme.COLORS.GRAY_600};
   border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
-  border-radius: 16px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 8px;
 `;
 
 export const QuickStatValue = styled.Text`
@@ -151,7 +151,7 @@ export const FormCard = styled.View`
   background-color: ${({ theme }) => theme.COLORS.GRAY_600};
   border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
   border-radius: 18px;
-  padding: 12px;
+  padding: 5px;
   margin-bottom: 14px;
 `;
 

@@ -1,26 +1,40 @@
-// src/services/notifications.ts
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 /**
- * Chaves no AsyncStorage
+ * Política de notificações do app
+ *
+ * Objetivo:
+ * - lembrar com gentileza, sem virar app carente
+ * - priorizar tarefas pendentes
+ * - evitar spam logo após interação
  */
+
+const DAILY_DEFAULT_TIME = "20:00";
+const DAILY_PERMISSION_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
+const RECENT_INTERACTION_MS = 10 * 60 * 1000; // 10min
+const WEEKLY_DIGEST_HOUR = 19;
+const WEEKLY_DIGEST_MINUTE = 0;
+
 export const NOTI_KEYS = {
-  lastNudgeDay: "@trevvos/noti:lastNudgeDay",
   scheduledDailyId: "@trevvos/noti:scheduledDailyId",
+  reminderTime: "@trevvos/noti:reminderTime",
+  permissionGrantedAt: "@trevvos/noti:permissionGrantedAt",
+
   firstOpenAt: "@trevvos/noti:firstOpenAt",
   lastOpenAt: "@trevvos/noti:lastOpenAt",
-  reminderTime: "@trevvos/noti:reminderTime", // "20:00"
-  permissionGrantedAt: "@trevvos/noti:permissionGrantedAt",
   lastInteractionAt: "@trevvos/noti:lastInteractionAt",
+
   onboardingScheduled: "@trevvos/noti:onboardingScheduled",
+
+  inactivity3SentAt: "@trevvos/noti:inactivity3SentAt",
+  inactivity7SentAt: "@trevvos/noti:inactivity7SentAt",
 } as const;
 
-/**
- * Handler de apresentação (sem APIs deprecadas)
- * Dica: também pode deixar isso no seu _layout/root.
- */
+const CHANNEL_ID = "default";
+const CATEGORY_ID = "trevvos-reminders";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -30,66 +44,89 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/**
- * Permissões (soft)
- */
-export async function ensurePermissionsSoft() {
-  const s = await Notifications.getPermissionsAsync();
-  if (!s.granted && !s.canAskAgain) return false;
-  if (!s.granted) {
-    const r = await Notifications.requestPermissionsAsync();
-    if (r.granted) {
-      await AsyncStorage.setItem(
-        NOTI_KEYS.permissionGrantedAt,
-        String(Date.now()),
-      );
-    }
-    return !!r.granted;
+function sameDayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function parseHHMM(hhmm: string) {
+  const [rawHour, rawMinute] = hhmm.split(":").map(Number);
+  const hour = Number.isFinite(rawHour) ? rawHour : 20;
+  const minute = Number.isFinite(rawMinute) ? rawMinute : 0;
+
+  return {
+    hour: Math.max(0, Math.min(23, hour)),
+    minute: Math.max(0, Math.min(59, minute)),
+  };
+}
+
+async function getReminderTime(): Promise<string> {
+  return (
+    (await AsyncStorage.getItem(NOTI_KEYS.reminderTime)) || DAILY_DEFAULT_TIME
+  );
+}
+
+export async function setReminderTime(hhmm: string) {
+  await AsyncStorage.setItem(NOTI_KEYS.reminderTime, hhmm);
+}
+
+export async function ensurePermissionsSoft(): Promise<boolean> {
+  const settings = await Notifications.getPermissionsAsync();
+
+  if (!settings.granted && !settings.canAskAgain) {
+    return false;
   }
+
+  if (!settings.granted) {
+    const requested = await Notifications.requestPermissionsAsync();
+
+    if (requested.granted) {
+      const existing = await AsyncStorage.getItem(
+        NOTI_KEYS.permissionGrantedAt,
+      );
+      if (!existing) {
+        await AsyncStorage.setItem(
+          NOTI_KEYS.permissionGrantedAt,
+          String(Date.now()),
+        );
+      }
+    }
+
+    return !!requested.granted;
+  }
+
+  const existing = await AsyncStorage.getItem(NOTI_KEYS.permissionGrantedAt);
+  if (!existing) {
+    await AsyncStorage.setItem(
+      NOTI_KEYS.permissionGrantedAt,
+      String(Date.now()),
+    );
+  }
+
   return true;
 }
 
-/**
- * Canais (Android) e categorias (ações)
- */
 export async function setupChannelsAndCategories() {
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: "Lembretes",
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
-  await Notifications.setNotificationCategoryAsync("trevvos-reminders", [
+
+  await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
     { identifier: "OPEN_PENDING", buttonTitle: "Abrir pendentes" },
     { identifier: "ADD_TASK", buttonTitle: "Adicionar tarefa" },
   ]);
 }
 
-/**
- * Utilitários de horário/estado
- */
-function sameDayKey(d = new Date()) {
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-function parseHHMM(hhmm: string) {
-  const [h, m] = hhmm.split(":").map((n) => Number(n));
-  const hour = isNaN(h) ? 20 : h;
-  const minute = isNaN(m) ? 0 : m;
-  return { hour, minute };
-}
-
-async function getReminderTime(): Promise<string> {
-  return (await AsyncStorage.getItem(NOTI_KEYS.reminderTime)) || "20:00";
-}
-export async function setReminderTime(hhmm: string) {
-  await AsyncStorage.setItem(NOTI_KEYS.reminderTime, hhmm);
-}
-
 export async function recordAppOpen() {
   const now = Date.now();
   const first = await AsyncStorage.getItem(NOTI_KEYS.firstOpenAt);
-  if (!first) await AsyncStorage.setItem(NOTI_KEYS.firstOpenAt, String(now));
+
+  if (!first) {
+    await AsyncStorage.setItem(NOTI_KEYS.firstOpenAt, String(now));
+  }
+
   await AsyncStorage.setItem(NOTI_KEYS.lastOpenAt, String(now));
 }
 
@@ -97,178 +134,220 @@ export async function markInteraction() {
   await AsyncStorage.setItem(NOTI_KEYS.lastInteractionAt, String(Date.now()));
 }
 
-/**
- * Regras anti-chateação
- * - 24h de cooldown depois de aceitar permissão
- * - Máximo 1 agendamento/dia
- * - 10min de silêncio após interação recente
- */
+async function hasRecentInteraction(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(NOTI_KEYS.lastInteractionAt);
+  const lastInteractionAt = Number(raw || "0");
+
+  if (!lastInteractionAt) return false;
+  return Date.now() - lastInteractionAt < RECENT_INTERACTION_MS;
+}
+
+async function isInPermissionCooldown(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(NOTI_KEYS.permissionGrantedAt);
+  if (!raw) return false;
+
+  const grantedAt = Number(raw);
+  if (!grantedAt) return false;
+
+  return Date.now() - grantedAt < DAILY_PERMISSION_COOLDOWN_MS;
+}
+
 async function canScheduleDailyNudge(): Promise<boolean> {
-  const grantedAtRaw = await AsyncStorage.getItem(
-    NOTI_KEYS.permissionGrantedAt,
-  );
-  if (grantedAtRaw) {
-    const grantedAt = Number(grantedAtRaw);
-    if (Date.now() - grantedAt < 24 * 60 * 60 * 1000) return false;
+  if (await isInPermissionCooldown()) {
+    return false;
   }
 
-  const today = sameDayKey();
-  const last = await AsyncStorage.getItem(NOTI_KEYS.lastNudgeDay);
-  if (last === today) return false;
-
-  const lastInter = Number(
-    (await AsyncStorage.getItem(NOTI_KEYS.lastInteractionAt)) || "0",
-  );
-  if (lastInter && Date.now() - lastInter < 10 * 60 * 1000) return false;
+  if (await hasRecentInteraction()) {
+    return false;
+  }
 
   return true;
 }
 
-/**
- * Diário (repetição diária no horário escolhido)
- * - NÃO dispara na hora; agenda para o próximo horário válido
- */
-export async function scheduleDailyIfPending(pendingCount: number) {
+function buildDailyTrigger(hour: number, minute: number) {
+  return {
+    hour,
+    minute,
+    repeats: true,
+    ...(Platform.OS === "android" ? { channelId: CHANNEL_ID } : {}),
+  } as any;
+}
+
+function buildImmediateTrigger(seconds = 2) {
+  return {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds,
+    ...(Platform.OS === "android" ? { channelId: CHANNEL_ID } : {}),
+  };
+}
+
+async function cancelDailyIfExists() {
   const existingId = await AsyncStorage.getItem(NOTI_KEYS.scheduledDailyId);
-  if (existingId) {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(existingId);
-    } catch {}
-    await AsyncStorage.removeItem(NOTI_KEYS.scheduledDailyId);
+
+  if (!existingId) return;
+
+  try {
+    await Notifications.cancelScheduledNotificationAsync(existingId);
+  } catch {
+    // noop
   }
 
-  if (pendingCount <= 0) return;
-  if (!(await canScheduleDailyNudge())) return;
+  await AsyncStorage.removeItem(NOTI_KEYS.scheduledDailyId);
+}
+
+export async function scheduleDailyIfPending(pendingCount: number) {
+  if (pendingCount <= 0) {
+    await cancelDailyIfExists();
+    return;
+  }
+
+  const canSchedule = await canScheduleDailyNudge();
+  if (!canSchedule) {
+    return;
+  }
 
   const hhmm = await getReminderTime();
   const { hour, minute } = parseHHMM(hhmm);
 
+  await cancelDailyIfExists();
+
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Você tem tarefas pendentes.",
-      body: "Abra o TodoList Trevvos e conclua uma hoje.",
-      categoryIdentifier: "trevvos-reminders",
+      title: "Você tem tarefas pendentes",
+      body: "Abre o Trevvos e fecha pelo menos uma hoje.",
+      categoryIdentifier: CATEGORY_ID,
       data: { kind: "daily", url: "trevvos://pending" },
     },
-    // Calendar trigger diário; tipagem varia entre plataformas, então forçamos 'any'
-    trigger: {
-      channelId: "default",
-      hour,
-      minute,
-      repeats: true,
-    } as any,
+    trigger: buildDailyTrigger(hour, minute),
   });
 
   await AsyncStorage.setItem(NOTI_KEYS.scheduledDailyId, id);
-  await AsyncStorage.setItem(NOTI_KEYS.lastNudgeDay, sameDayKey());
 }
 
 /**
- * Chamar quando o app vai para background/inactive (ex.: Home -> AppState listener)
+ * Chamar quando o app for para background/inactive.
  */
 export async function maybeScheduleOnBackground(pendingCount: number) {
   try {
     await scheduleDailyIfPending(pendingCount);
-  } catch {}
+  } catch {
+    // noop
+  }
 }
 
 /**
- * Onboarding nudge (2 dias após o primeiro uso às 20:00). Agenda apenas 1x.
+ * Agenda apenas 1 lembrete de onboarding:
+ * 2 dias após o primeiro uso, às 20:00.
  */
 export async function scheduleOnboardingNudgeIfNeeded() {
-  const first = await AsyncStorage.getItem(NOTI_KEYS.firstOpenAt);
-  if (!first) return;
+  const firstOpenAt = await AsyncStorage.getItem(NOTI_KEYS.firstOpenAt);
+  if (!firstOpenAt) return;
 
-  // já marcamos que agendou (ou que foi descartado)
   const flag = await AsyncStorage.getItem(NOTI_KEYS.onboardingScheduled);
   if (flag === "1") return;
 
-  // calcula “+2 dias, 20:00”
-  const fire = new Date(Number(first));
+  const fire = new Date(Number(firstOpenAt));
   fire.setDate(fire.getDate() + 2);
   fire.setHours(20, 0, 0, 0);
 
-  const now = new Date();
-
-  // se já passou, não agenda e marca flag pra não tentar de novo
-  if (fire <= now) {
+  if (fire <= new Date()) {
     await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
     return;
   }
 
-  // se por algum motivo já existe um onboarding pendente, marca e sai
-  const already = await Notifications.getAllScheduledNotificationsAsync();
-  if (already.some((n) => n.content?.data?.kind === "onboarding")) {
-    await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
-    return;
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const hasOnboarding = scheduled.some(
+    (n) => n.content?.data?.kind === "onboarding",
+  );
+
+  if (!hasOnboarding) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Volta aqui e conclui uma hoje",
+        body: "Pequeno passo vale mais que zero.",
+        categoryIdentifier: CATEGORY_ID,
+        data: { kind: "onboarding", url: "trevvos://pending" },
+      },
+      trigger: { date: fire } as any,
+    });
   }
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Volta aqui e conclui uma hoje",
-      body: "Pequeno passo vale mais que zero.",
-      categoryIdentifier: "trevvos-reminders",
-      data: { kind: "onboarding", url: "trevvos://pending" },
-    },
-    trigger: { date: fire } as any,
-  });
-
-  // marcou pra nunca mais repetir essa lógica
   await AsyncStorage.setItem(NOTI_KEYS.onboardingScheduled, "1");
 }
 
 /**
- * Nudge de inatividade: se passaram exatamente 3 ou 7 dias sem abrir o app, manda um lembrete.
- * (Se quiser, podemos trocar para “agendar para 20:00 do mesmo dia”)
+ * Inatividade:
+ * - 3 dias sem abrir => 1 lembrete
+ * - 7 dias sem abrir => 1 lembrete
+ *
+ * Não exige “exatamente” 3 ou 7.
+ * Isso evita perder a janela por 1 dia besta.
  */
 export async function maybeInactivityNudge() {
-  const lastOpen = Number(
-    (await AsyncStorage.getItem(NOTI_KEYS.lastOpenAt)) || "0",
-  );
-  if (!lastOpen) return;
+  const rawLastOpenAt = await AsyncStorage.getItem(NOTI_KEYS.lastOpenAt);
+  const lastOpenAt = Number(rawLastOpenAt || "0");
 
-  const days = Math.floor((Date.now() - lastOpen) / (24 * 3600 * 1000));
-  if (days !== 3 && days !== 7) return;
+  if (!lastOpenAt) return;
 
-  const today = sameDayKey();
-  const last = await AsyncStorage.getItem(NOTI_KEYS.lastNudgeDay);
-  if (last === today) return;
+  const days = Math.floor((Date.now() - lastOpenAt) / (24 * 3600 * 1000));
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title:
-        days === 3
-          ? "sumiu? seu Trevvos sentiu sua falta 🙂"
-          : "que tal zerar uma coisinha hoje?",
-      body: "Tem itens fáceis pra fechar.",
-      categoryIdentifier: "trevvos-reminders",
-      data: { kind: "inactivity", url: "trevvos://pending" },
-    },
-    trigger: { seconds: 2 } as any, // manda agora (leve atraso)
-  });
+  const sent3 = await AsyncStorage.getItem(NOTI_KEYS.inactivity3SentAt);
+  const sent7 = await AsyncStorage.getItem(NOTI_KEYS.inactivity7SentAt);
 
-  await AsyncStorage.setItem(NOTI_KEYS.lastNudgeDay, today);
+  if (days >= 7 && !sent7) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Tem tarefa te esperando por aqui",
+        body: "Volta no Trevvos e fecha uma pendência rapidinho.",
+        categoryIdentifier: CATEGORY_ID,
+        data: { kind: "inactivity-7d", url: "trevvos://pending" },
+      },
+      trigger: buildImmediateTrigger(2),
+    });
+
+    await AsyncStorage.setItem(NOTI_KEYS.inactivity7SentAt, String(Date.now()));
+    return;
+  }
+
+  if (days >= 3 && !sent3) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Sumiu? O Trevvos sentiu sua falta 🙂",
+        body: "Tem item fácil pra concluir hoje.",
+        categoryIdentifier: CATEGORY_ID,
+        data: { kind: "inactivity-3d", url: "trevvos://pending" },
+      },
+      trigger: buildImmediateTrigger(2),
+    });
+
+    await AsyncStorage.setItem(NOTI_KEYS.inactivity3SentAt, String(Date.now()));
+  }
 }
 
 /**
- * Digest semanal (domingo 19:00). Reagenda sempre que chamar.
- * Recebe métricas para compor a mensagem.
+ * Digest semanal:
+ * domingo às 19:00, com resumo simples.
+ * Bom para retenção leve sem parecer cobrança.
  */
 export async function scheduleWeeklyDigest(
   pending: number,
   created: number,
   done: number,
 ) {
-  // calcula próximo domingo às 19:00
   const now = new Date();
   const fire = new Date(now);
-  const day = fire.getDay(); // 0 = dom
+
+  const day = fire.getDay(); // 0 = domingo
   const delta = (7 - day) % 7;
   fire.setDate(now.getDate() + delta);
-  fire.setHours(19, 0, 0, 0);
+  fire.setHours(WEEKLY_DIGEST_HOUR, WEEKLY_DIGEST_MINUTE, 0, 0);
 
-  // cancela versões antigas deste digest
+  if (fire <= now) {
+    fire.setDate(fire.getDate() + 7);
+  }
+
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
   await Promise.all(
     scheduled
       .filter((n) => n.content?.data?.kind === "weekly")
@@ -279,10 +358,10 @@ export async function scheduleWeeklyDigest(
     content: {
       title: "Sua semana no Trevvos",
       body: `Criadas: ${created} • Concluídas: ${done} • Em aberto: ${pending}`,
-      categoryIdentifier: "trevvos-reminders",
+      categoryIdentifier: CATEGORY_ID,
       data: { kind: "weekly", url: "trevvos://weekly" },
     },
-    trigger: { date: fire, repeats: true } as any, // semanal
+    trigger: { date: fire, repeats: true } as any,
   });
 }
 
@@ -296,15 +375,33 @@ type NotifiableGroup = {
   type?: "shopping" | "task" | "routine";
 };
 
+/**
+ * Só contamos listas de tarefa para o nudge diário.
+ * Lista de compras e rotina são outro comportamento mental.
+ */
 export function getNotifiablePendingCount(
   tasks: NotifiableTask[],
   groups: NotifiableGroup[],
 ) {
   const allowedGroupIds = groups
-    .filter((g) => (g.type ?? "task") === "task")
-    .map((g) => g.id);
+    .filter((group) => (group.type ?? "task") === "task")
+    .map((group) => group.id);
 
   return tasks.filter(
     (task) => !task.completed && allowedGroupIds.includes(task.groupId),
   ).length;
+}
+
+/**
+ * Utilitário opcional para debug/reset local.
+ */
+export async function resetNotificationDebugState() {
+  await AsyncStorage.multiRemove([
+    NOTI_KEYS.scheduledDailyId,
+    NOTI_KEYS.permissionGrantedAt,
+    NOTI_KEYS.lastInteractionAt,
+    NOTI_KEYS.onboardingScheduled,
+    NOTI_KEYS.inactivity3SentAt,
+    NOTI_KEYS.inactivity7SentAt,
+  ]);
 }

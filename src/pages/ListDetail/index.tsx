@@ -115,6 +115,12 @@ function getMetaDescription(type: ListType, isShared: boolean) {
   }
 }
 
+function sortTasksByCompleted<T extends { completed: boolean }>(items: T[]) {
+  const pending = items.filter((item) => !item.completed);
+  const done = items.filter((item) => item.completed);
+  return [...pending, ...done];
+}
+
 export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
 
@@ -278,8 +284,27 @@ export function ListDetail({ id, scope }: Props) {
         text: "Sair",
         style: "destructive",
         onPress: async () => {
-          await leaveSharedList(id);
-          router.back();
+          try {
+            await leaveSharedList(id);
+
+            Alert.alert(
+              "Você saiu da lista",
+              "A lista foi removida da sua conta.",
+              [
+                {
+                  text: "Ok",
+                  onPress: () => {
+                    router.back();
+                  },
+                },
+              ],
+            );
+          } catch (e: any) {
+            Alert.alert(
+              "Sair da lista",
+              e?.response?.data?.message ?? "Não foi possível sair da lista.",
+            );
+          }
         },
       },
     ]);
@@ -295,8 +320,28 @@ export function ListDetail({ id, scope }: Props) {
           text: "Excluir",
           style: "destructive",
           onPress: async () => {
-            await deleteSharedList(id);
-            router.back();
+            try {
+              await deleteSharedList(id);
+
+              Alert.alert(
+                "Lista excluída",
+                "A lista foi removida com sucesso.",
+                [
+                  {
+                    text: "Ok",
+                    onPress: () => {
+                      router.back();
+                    },
+                  },
+                ],
+              );
+            } catch (e: any) {
+              Alert.alert(
+                "Excluir lista",
+                e?.response?.data?.message ??
+                  "Não foi possível excluir a lista.",
+              );
+            }
           },
         },
       ],
@@ -308,9 +353,16 @@ export function ListDetail({ id, scope }: Props) {
       const current = sharedItems.find((i) => i.id === idItem);
       if (!current) return;
 
-      setSharedItems((prev) =>
-        prev.map((i) => (i.id === idItem ? { ...i, isDone: !i.isDone } : i)),
+      const optimistic = sharedItems.map((i) =>
+        i.id === idItem ? { ...i, isDone: !i.isDone } : i,
       );
+
+      const sortedOptimistic = [
+        ...optimistic.filter((i) => !i.isDone),
+        ...optimistic.filter((i) => i.isDone),
+      ];
+
+      setSharedItems(sortedOptimistic);
 
       try {
         await updateSharedItem(id, idItem, {
@@ -323,12 +375,19 @@ export function ListDetail({ id, scope }: Props) {
     }
 
     const all = await loadTasks();
+
     const updated = all.map((t) =>
       t.id === idItem ? { ...t, completed: !t.completed } : t,
     );
 
-    await saveTasks(updated);
-    setLocalTasks(updated.filter((t) => t.groupId === id));
+    const currentListTasks = updated.filter((t) => t.groupId === id);
+    const otherTasks = updated.filter((t) => t.groupId !== id);
+
+    const sortedCurrentListTasks = sortTasksByCompleted(currentListTasks);
+    const finalTasks = [...sortedCurrentListTasks, ...otherTasks];
+
+    await saveTasks(finalTasks);
+    setLocalTasks(sortedCurrentListTasks);
   }
 
   async function handleRemove(idItem: string) {
@@ -359,6 +418,59 @@ export function ListDetail({ id, scope }: Props) {
     } catch {
       Alert.alert("Rotina", "Não foi possível reiniciar a rotina.");
     }
+  }
+
+  async function handleUncheckAll() {
+    if (completed === 0) return;
+
+    Alert.alert(
+      "Desmarcar todas",
+      "Todos os itens concluídos voltarão para pendentes.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desmarcar",
+          onPress: async () => {
+            try {
+              if (isShared) {
+                const doneItems = sharedItems.filter((item) => item.isDone);
+
+                await Promise.all(
+                  doneItems.map((item) =>
+                    updateSharedItem(id, item.id, { isDone: false }),
+                  ),
+                );
+
+                const refreshed = await fetchSharedItems(id);
+                const sorted = [
+                  ...refreshed.filter((i) => !i.isDone),
+                  ...refreshed.filter((i) => i.isDone),
+                ];
+                setSharedItems(sorted);
+                return;
+              }
+
+              const allTasks = await loadTasks();
+
+              const updated = allTasks.map((task) =>
+                task.groupId === id ? { ...task, completed: false } : task,
+              );
+
+              await saveTasks(updated);
+
+              const currentListTasks = updated.filter((t) => t.groupId === id);
+              setLocalTasks(currentListTasks);
+            } catch (e: any) {
+              Alert.alert(
+                "Desmarcar todas",
+                e?.response?.data?.message ??
+                  "Não foi possível desmarcar os itens.",
+              );
+            }
+          },
+        },
+      ],
+    );
   }
 
   async function handleShare() {
@@ -395,15 +507,25 @@ export function ListDetail({ id, scope }: Props) {
       });
     }
 
-    options.push({
-      text: "Compartilhar",
-      onPress: handleShare,
-    });
-
-    options.push({
+    if (isShared) {
+      /*options.push({
       text: "Ver token",
       onPress: () => setShowJoinByToken(true),
     });
+    */
+
+      options.push({
+        text: "Compartilhar",
+        onPress: handleShare,
+      });
+    }
+
+    if (completed > 0) {
+      options.push({
+        text: "Desmarcar todas",
+        onPress: handleUncheckAll,
+      });
+    }
 
     options.push({
       text: "Cancelar",
@@ -467,7 +589,7 @@ export function ListDetail({ id, scope }: Props) {
           showBackButton
           onBackPress={() => router.back()}
           rightAction={
-            isShared ? (
+            completed > 0 || isShared ? (
               <ActionButton onPress={openMenu}>
                 <Ionicons name="ellipsis-horizontal" size={20} color="#FFF" />
               </ActionButton>

@@ -14,7 +14,7 @@ export const Container = styled.View`
   margin-bottom: 12px;
 
   border-radius: 6px;
-  padding: 24px;
+  padding: 14px 16px;
   ${({ theme }) => css`
     background-color: ${theme.COLORS.GRAY_600};
   `}
