@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { RefObject } from "react";
 import type { TextInput } from "react-native";
-import { AddItemButton, FormCard, InputRow, StyledInput } from "../styles";
+import {
+  AddItemButton,
+  FormCard,
+  InputRow,
+  StyledInput,
+  SuggestionButton,
+  SuggestionButtonText,
+} from "../styles";
 
 type Props = {
   value: string;
@@ -9,6 +16,8 @@ type Props = {
   inputRef: RefObject<TextInput | null>;
   onChangeText: (value: string) => void;
   onSubmit: () => void;
+  showSuggestionsAction?: boolean;
+  onSuggestItems?: () => void;
 };
 
 export function AddItemBar({
@@ -17,6 +26,8 @@ export function AddItemBar({
   inputRef,
   onChangeText,
   onSubmit,
+  showSuggestionsAction = false,
+  onSuggestItems,
 }: Props) {
   return (
     <FormCard>
@@ -34,6 +45,13 @@ export function AddItemBar({
           <Ionicons name="add" size={22} color="#FFF" />
         </AddItemButton>
       </InputRow>
+
+      {showSuggestionsAction ? (
+        <SuggestionButton onPress={onSuggestItems}>
+          <Ionicons name="sparkles-outline" size={14} color="#F2F2F2" />
+          <SuggestionButtonText>Sugerir itens</SuggestionButtonText>
+        </SuggestionButton>
+      ) : null}
     </FormCard>
   );
 }

@@ -22,6 +22,10 @@ import { ListEmpty } from "@/src/components/ListEmpty";
 import { Tasks } from "@/src/components/Tasks";
 
 import {
+  isAiSuggestionsEnabled,
+  requestAiListSuggestions,
+} from "@/src/services/aiSuggestions";
+import {
   createSharedInvite,
   joinSharedInviteByToken,
 } from "@/src/services/sharedInvites";
@@ -42,7 +46,7 @@ import { AppError } from "@/src/utils/AppError";
 
 import { deleteSharedList, leaveSharedList } from "@/src/services/sharedLists";
 import { ListType } from "@/src/types/group";
-import { AddItemBar, ListDetailHeader } from "./components";
+import { AddItemBar, AiSuggestionsModal, ListDetailHeader } from "./components";
 import {
   getEmptyText,
   getInputPlaceholder,
@@ -68,6 +72,10 @@ type Props = {
 
 const AUTO_REFRESH_COOLDOWN_MS = 7000;
 
+function normalizeItemTitle(value: string) {
+  return value.trim().toLocaleLowerCase("pt-BR");
+}
+
 export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
   const lastAutoRefreshAtRef = useRef(0);
@@ -84,6 +92,12 @@ export function ListDetail({ id, scope }: Props) {
   const [listType, setListType] = useState<ListType>("task");
 
   const [showJoinByToken, setShowJoinByToken] = useState(false);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [selectedAiSuggestions, setSelectedAiSuggestions] = useState<string[]>(
+    [],
+  );
 
   const isShared = scope === "shared";
   const isFocused = useIsFocused();
@@ -146,6 +160,7 @@ export function ListDetail({ id, scope }: Props) {
   const total = itemsAsTasks.length;
   const pending = total - completed;
   const progress = total > 0 ? completed / total : 0;
+  const canSuggestItems = isAiSuggestionsEnabled();
 
   const refreshSharedItems = useCallback(async () => {
     const items = await fetchSharedItems(id);
@@ -450,6 +465,117 @@ export function ListDetail({ id, scope }: Props) {
     }
   }
 
+  async function handleOpenAiSuggestions() {
+    setShowAiSuggestions(true);
+    setLoadingAiSuggestions(true);
+    setAiSuggestions([]);
+    setSelectedAiSuggestions([]);
+
+    try {
+      const existingItems = itemsAsTasks.map((item) => item.title);
+      const existingLookup = new Set(existingItems.map(normalizeItemTitle));
+      const suggestions = await requestAiListSuggestions({
+        title,
+        type: listType,
+        existingItems,
+        locale: "pt-BR",
+      });
+      const seenSuggestions = new Set<string>();
+
+      const uniqueSuggestions = suggestions.filter(
+        (suggestion) => {
+          const normalized = normalizeItemTitle(suggestion);
+          if (existingLookup.has(normalized) || seenSuggestions.has(normalized)) {
+            return false;
+          }
+
+          seenSuggestions.add(normalized);
+          return true;
+        },
+      );
+
+      setAiSuggestions(uniqueSuggestions);
+      setSelectedAiSuggestions(uniqueSuggestions);
+    } catch (err) {
+      setShowAiSuggestions(false);
+
+      if (err instanceof AppError) {
+        Alert.alert("Sugerir itens", err.message);
+      } else {
+        Alert.alert("Sugerir itens", "Não foi possível gerar sugestões.");
+      }
+    } finally {
+      setLoadingAiSuggestions(false);
+    }
+  }
+
+  function handleToggleAiSuggestion(suggestion: string) {
+    setSelectedAiSuggestions((current) =>
+      current.includes(suggestion)
+        ? current.filter((item) => item !== suggestion)
+        : [...current, suggestion],
+    );
+  }
+
+  async function handleAddAiSuggestions() {
+    const selected = selectedAiSuggestions
+      .map((suggestion) => suggestion.trim())
+      .filter(Boolean);
+
+    if (selected.length === 0) return;
+
+    try {
+      if (isShared) {
+        const existingLookup = new Set(
+          sharedItems.map((item) => normalizeItemTitle(item.text)),
+        );
+        const newSuggestions = selected.filter(
+          (suggestion) => !existingLookup.has(normalizeItemTitle(suggestion)),
+        );
+
+        await Promise.all(
+          newSuggestions.map((suggestion) => createSharedItem(id, suggestion)),
+        );
+        await refreshSharedItems();
+      } else {
+        const allTasks = await loadTasks();
+        const currentListTasks = allTasks.filter((task) => task.groupId === id);
+        const existingLookup = new Set(
+          currentListTasks.map((task) => normalizeItemTitle(task.title)),
+        );
+        const createdAt = Date.now();
+        const newTasks = selected
+          .filter(
+            (suggestion) => !existingLookup.has(normalizeItemTitle(suggestion)),
+          )
+          .map<Task>((suggestion, index) => ({
+            id:
+              `${createdAt}-${index}-` +
+              Math.random().toString(36).substring(2),
+            title: suggestion,
+            completed: false,
+            groupId: id,
+            createdAt: createdAt + index,
+            remoteId: "",
+            remoteVersion: 0,
+          }));
+
+        if (newTasks.length > 0) {
+          await saveTasks([...newTasks, ...allTasks]);
+          setLocalTasks((current) =>
+            sortTasksForDisplay([...newTasks, ...current]),
+          );
+        }
+      }
+
+      setShowAiSuggestions(false);
+      setAiSuggestions([]);
+      setSelectedAiSuggestions([]);
+    } catch {
+      Alert.alert("Sugerir itens", "Não foi possível adicionar as sugestões.");
+    }
+  }
+
   function openMenu() {
     const actions = buildListMenuActions({
       isShared,
@@ -544,6 +670,8 @@ export function ListDetail({ id, scope }: Props) {
           placeholder={getInputPlaceholder(listType)}
           onChangeText={setNewItem}
           onSubmit={handleAddItem}
+          showSuggestionsAction={canSuggestItems}
+          onSuggestItems={handleOpenAiSuggestions}
         />
 
         <FlatList
@@ -582,6 +710,16 @@ export function ListDetail({ id, scope }: Props) {
         visible={showJoinByToken}
         onClose={() => setShowJoinByToken(false)}
         onConfirm={handleJoinByToken}
+      />
+
+      <AiSuggestionsModal
+        visible={showAiSuggestions}
+        loading={loadingAiSuggestions}
+        suggestions={aiSuggestions}
+        selectedSuggestions={selectedAiSuggestions}
+        onToggleSuggestion={handleToggleAiSuggestion}
+        onAddSelected={handleAddAiSuggestions}
+        onClose={() => setShowAiSuggestions(false)}
       />
     </Container>
   );

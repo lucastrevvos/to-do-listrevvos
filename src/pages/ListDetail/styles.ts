@@ -146,6 +146,24 @@ export const AddItemButton = styled.Pressable`
   justify-content: center;
 `;
 
+export const SuggestionButton = styled.Pressable`
+  align-self: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background-color: ${({ theme }) => theme.COLORS.GRAY_500};
+  border: 1px solid ${({ theme }) => theme.COLORS.GRAY_400};
+`;
+
+export const SuggestionButtonText = styled.Text`
+  color: ${({ theme }) => theme.COLORS.GRAY_100};
+  font-size: 12px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+`;
+
 export const Fab = styled.Pressable`
   position: absolute;
   right: 20px;
@@ -174,4 +192,128 @@ export const LoadingWrap = styled.View`
 export const EmptyWrap = styled.View`
   flex: 1;
   justify-content: center;
+`;
+
+export const ModalBackdrop = styled.View`
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.72);
+  justify-content: flex-end;
+`;
+
+export const SuggestionsPanel = styled.View`
+  background-color: ${({ theme }) => theme.COLORS.GRAY_600};
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
+  padding: 18px 20px 22px;
+`;
+
+export const SuggestionsHeader = styled.View`
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+`;
+
+export const SuggestionsTitle = styled.Text`
+  color: ${({ theme }) => theme.COLORS.WHITE};
+  font-size: 16px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+`;
+
+export const SuggestionsSubtitle = styled.Text`
+  color: ${({ theme }) => theme.COLORS.GRAY_200};
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 3px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+`;
+
+export const ModalCloseButton = styled.Pressable`
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.COLORS.GRAY_500};
+`;
+
+export const SuggestionsLoading = styled.View`
+  padding: 22px 0;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const SuggestionOption = styled.Pressable<{ selected: boolean }>`
+  min-height: 46px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background-color: ${({ theme, selected }) =>
+    selected ? theme.COLORS.BLUE_DARK : theme.COLORS.GRAY_500};
+  border: 1px solid
+    ${({ theme, selected }) =>
+      selected ? theme.COLORS.BLUE : theme.COLORS.GRAY_400};
+`;
+
+export const SuggestionCheck = styled.View<{ selected: boolean }>`
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid
+    ${({ theme, selected }) =>
+      selected ? theme.COLORS.BLUE : theme.COLORS.GRAY_300};
+`;
+
+export const SuggestionText = styled.Text`
+  flex: 1;
+  color: ${({ theme }) => theme.COLORS.WHITE};
+  font-size: 14px;
+  line-height: 19px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+`;
+
+export const SuggestionsEmptyText = styled.Text`
+  color: ${({ theme }) => theme.COLORS.GRAY_200};
+  font-size: 13px;
+  line-height: 18px;
+  padding: 16px 0;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+`;
+
+export const SuggestionsActions = styled.View`
+  flex-direction: row;
+  gap: 10px;
+  margin-top: 12px;
+`;
+
+export const SuggestionsSecondaryButton = styled.Pressable`
+  flex: 1;
+  min-height: 44px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.COLORS.GRAY_500};
+`;
+
+export const SuggestionsPrimaryButton = styled.Pressable<{ disabled?: boolean }>`
+  flex: 1.4;
+  min-height: 44px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme, disabled }) =>
+    disabled ? theme.COLORS.GRAY_400 : theme.COLORS.BLUE_DARK};
+`;
+
+export const SuggestionsButtonText = styled.Text`
+  color: ${({ theme }) => theme.COLORS.WHITE};
+  font-size: 13px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
 `;
