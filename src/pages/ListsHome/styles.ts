@@ -2,7 +2,7 @@ import styled from "styled-components/native";
 
 export const SectionActionText = styled.Text`
   color: ${({ theme }) => theme.COLORS.WHITE};
-  font-size: 13px;
+  font-size: 12px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
 `;
 
@@ -11,53 +11,61 @@ export const Container = styled.View`
   background-color: ${({ theme }) => theme.COLORS.GRAY_700};
 `;
 
-export const HeaderBlock = styled.View`
-  padding: 4px 20px 12px;
+export const LoadingWrap = styled.View`
+  flex: 1;
+  align-items: center;
+  justify-content: center;
 `;
 
-export const HeroCard = styled.View`
-  background-color: ${({ theme }) => theme.COLORS.GRAY_600};
-  border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
-  border-radius: 20px;
-  padding: 18px;
-`;
-
-export const HeroLabel = styled.Text`
-  color: ${({ theme }) => theme.COLORS.BLUE};
-  font-size: 12px;
-  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
-  margin-bottom: 6px;
-`;
-
-export const HeroText = styled.Text`
-  color: ${({ theme }) => theme.COLORS.GRAY_100};
-  font-size: 14px;
-  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
-  line-height: 20px;
-`;
-
-export const HeroRow = styled.View`
+export const SectionHeader = styled.View`
   flex-direction: row;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
 `;
 
-export const HeroNumber = styled.Text`
-  color: ${({ theme }) => theme.COLORS.WHITE};
-  font-size: 22px;
-  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+export const SectionTitleWrap = styled.View`
+  flex: 1;
+  min-width: 0;
+`;
+
+export const SummaryText = styled.Text`
+  color: ${({ theme }) => theme.COLORS.GRAY_300};
+  font-size: 12px;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
+  margin-top: 2px;
 `;
 
 export const ListsContainer = styled.View`
   flex: 1;
-  padding: 16px 20px 0;
+  padding: 12px 20px 0;
 `;
 
 export const SectionTitle = styled.Text`
   color: ${({ theme }) => theme.COLORS.WHITE};
-  font-size: 20px;
+  font-size: 18px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
-  margin-bottom: 14px;
+`;
+
+export const SharedActionButton = styled.Pressable`
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.COLORS.GRAY_600};
+  border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
+`;
+
+export const SharedActionContent = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const CardTouchable = styled.Pressable`
+  min-height: 96px;
 `;
 
 export const Card = styled.View<{ accent?: "shopping" | "task" | "routine" }>`
@@ -68,9 +76,21 @@ export const Card = styled.View<{ accent?: "shopping" | "task" | "routine" }>`
       if (accent === "routine") return theme.COLORS.PURPLE_DARK;
       return theme.COLORS.GRAY_500;
     }};
-  border-radius: 18px;
-  padding: 16px;
-  gap: 12px;
+  border-radius: 14px;
+  padding: 12px;
+  gap: 8px;
+`;
+
+export const CardHeader = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+`;
+
+export const CardMain = styled.View`
+  flex: 1;
+  min-width: 0;
 `;
 
 export const CardTitle = styled.Text`
@@ -81,12 +101,12 @@ export const CardTitle = styled.Text`
 
 export const CardSubtitle = styled.Text`
   color: ${({ theme }) => theme.COLORS.GRAY_200};
-  font-size: 13px;
+  font-size: 12px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
 `;
 
 export const Badge = styled.View<{ shared?: boolean }>`
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   background-color: ${({ theme, shared }) =>
     shared ? theme.COLORS.PURPLE_DARK : theme.COLORS.BLUE_DARK};
@@ -94,13 +114,13 @@ export const Badge = styled.View<{ shared?: boolean }>`
 
 export const BadgeText = styled.Text`
   color: ${({ theme }) => theme.COLORS.WHITE};
-  font-size: 11px;
+  font-size: 10px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
 `;
 
 export const CardProgressBar = styled.View`
   width: 100%;
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
   overflow: hidden;
   background-color: ${({ theme }) => theme.COLORS.GRAY_500};
@@ -126,10 +146,41 @@ export const CardFooter = styled.View`
   align-items: center;
 `;
 
-export const EmptyText = styled.Text`
+export const MenuButton = styled.Pressable`
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  margin-top: -4px;
+  margin-right: -4px;
+`;
+
+export const EmptyState = styled.View`
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+`;
+
+export const EmptyLogo = styled.Image`
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  margin-bottom: 14px;
+`;
+
+export const EmptyTitle = styled.Text`
+  color: ${({ theme }) => theme.COLORS.WHITE};
+  font-size: 16px;
+  text-align: center;
+  font-family: ${({ theme }) => theme.FONT_FAMILY.BOLD};
+`;
+
+export const EmptyDescription = styled.Text`
   color: ${({ theme }) => theme.COLORS.GRAY_300};
   font-size: 14px;
+  line-height: 20px;
   text-align: center;
+  margin-top: 6px;
   font-family: ${({ theme }) => theme.FONT_FAMILY.REGULAR};
 `;
 

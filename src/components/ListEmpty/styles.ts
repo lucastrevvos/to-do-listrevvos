@@ -1,14 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import styled, { css } from "styled-components/native";
 
 export const Container = styled.View`
   flex: 1;
   justify-content: center;
   align-items: center;
-  padding: 24px;
-
-  border-top-width: 1px;
-  border-top-color: #333333;
+  padding: 20px 24px;
 `;
 
 export const Title = styled.Text`
@@ -22,6 +18,9 @@ export const Title = styled.Text`
 `;
 
 export const Text = styled.Text`
+  text-align: center;
+  margin-top: 6px;
+
   ${({ theme }) => css`
     color: ${theme.COLORS.GRAY_400};
     font-family: ${theme.FONT_FAMILY.REGULAR};
@@ -29,9 +28,9 @@ export const Text = styled.Text`
   `}
 `;
 
-export const Icon = styled(Ionicons).attrs(({ theme }) => ({
-  size: 50,
-  color: theme.COLORS.GRAY_400,
-}))`
-  margin: 25px 0;
+export const Mark = styled.Image`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin-bottom: 14px;
 `;

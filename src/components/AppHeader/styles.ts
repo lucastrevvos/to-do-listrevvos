@@ -35,6 +35,13 @@ export const BackButton = styled.Pressable`
   border: 1px solid ${({ theme }) => theme.COLORS.GRAY_500};
 `;
 
+export const Logo = styled.Image`
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  margin-right: 10px;
+`;
+
 export const Title = styled.Text`
   color: ${({ theme }) => theme.COLORS.WHITE};
   font-size: 24px;

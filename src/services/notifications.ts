@@ -173,7 +173,9 @@ function buildDailyTrigger(hour: number, minute: number) {
   } as any;
 }
 
-function buildImmediateTrigger(seconds = 2) {
+function buildImmediateTrigger(
+  seconds = 2,
+): Notifications.TimeIntervalTriggerInput {
   return {
     type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
     seconds,

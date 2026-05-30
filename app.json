@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "TodoList Trevvos",
-    "slug": "todolist-trevvos",
+    "name": "Trevvos Flow",
+    "slug": "trevvos-flow",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -28,7 +28,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#020B18"
       },
       "package": "com.lucasamaral.todolistrevvos",
       "edgeToEdgeEnabled": true
@@ -46,7 +46,7 @@
         {
           "image": "./assets/images/splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#020B18"
         }
       ],
       "expo-font"

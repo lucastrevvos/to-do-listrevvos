@@ -1,4 +1,4 @@
-# ✅ TodoList Trevvos
+# Trevvos Flow
 
 Uma aplicação mobile de lista de tarefas construída com **React Native (Expo)**.  
 Simples, leve e funcional — ideal para quem busca produtividade com uma interface limpa.

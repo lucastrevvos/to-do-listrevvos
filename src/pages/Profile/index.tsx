@@ -9,6 +9,9 @@ import {
   AppVersion,
   Badge,
   BadgeText,
+  BrandLogo,
+  BrandRow,
+  BrandTextWrap,
   Card,
   CardDescription,
   CardTitle,
@@ -21,6 +24,8 @@ import {
   ItemTitle,
   SectionTitle,
 } from "./styles";
+
+const flowMark = require("../../../assets/images/flow-mark.png");
 
 export function ProfilePage() {
   const [guestId, setGuestId] = useState("");
@@ -48,13 +53,22 @@ export function ProfilePage() {
     <Container>
       <AppHeader
         title="Perfil"
-        subtitle="Utilidades, informações e futuro do TodoList Trevvos"
+        subtitle="Utilidades, informações e futuro do Trevvos Flow"
       />
 
       <HeroCard>
-        <Badge>
-          <BadgeText>TodoList Trevvos</BadgeText>
-        </Badge>
+        <BrandRow>
+          <BrandLogo
+            source={flowMark}
+            accessible={false}
+            accessibilityIgnoresInvertColors
+          />
+          <BrandTextWrap>
+            <Badge>
+              <BadgeText>Trevvos Flow</BadgeText>
+            </Badge>
+          </BrandTextWrap>
+        </BrandRow>
 
         <HeroTitle>Seu espaço de controle do app</HeroTitle>
         <HeroDescription>
@@ -119,7 +133,7 @@ export function ProfilePage() {
         </ItemRow>
       </Card>
 
-      <AppVersion>TodoList Trevvos • v2 em evolução</AppVersion>
+      <AppVersion>Trevvos Flow • v2 em evolução</AppVersion>
 
       <JoinSharedListModal
         visible={showJoin}

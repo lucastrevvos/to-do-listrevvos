@@ -26,7 +26,7 @@ export function AIPage() {
     <Container>
       <AppHeader
         title="IA"
-        subtitle="Os recursos inteligentes chegarão na v3 do TodoList Trevvos"
+        subtitle="Os recursos inteligentes chegarão na v3 do Trevvos Flow"
       />
 
       <HeroCard>
@@ -40,7 +40,7 @@ export function AIPage() {
         </HeroTitle>
         <HeroText>
           A versão atual foca em listas, colaboração e organização. Na v3, o
-          TodoList Trevvos vai ganhar recursos premium com IA para gerar,
+          Trevvos Flow vai ganhar recursos premium com IA para gerar,
           melhorar e sugerir listas automaticamente.
         </HeroText>
       </HeroCard>
@@ -96,7 +96,7 @@ export function AIPage() {
         </CardDescription>
       </Card>
 
-      <FooterText>TodoList Trevvos • IA prevista para a v3</FooterText>
+      <FooterText>Trevvos Flow • IA prevista para a v3</FooterText>
     </Container>
   );
 }

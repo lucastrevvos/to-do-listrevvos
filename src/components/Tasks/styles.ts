@@ -11,18 +11,23 @@ export const Container = styled.View`
   text-align: center;
   align-items: center;
 
-  margin-bottom: 12px;
+  min-height: 48px;
+  margin-bottom: 8px;
 
-  border-radius: 6px;
-  padding: 14px 16px;
+  border-radius: 8px;
+  padding: 10px 12px;
   ${({ theme }) => css`
     background-color: ${theme.COLORS.GRAY_600};
   `}
 `;
 
 export const Text = styled.Text<Props>`
+  flex: 1;
   flex-shrink: 1;
-  margin-left: 12px;
+  margin-left: 10px;
+  margin-right: 10px;
+  font-size: 14px;
+  line-height: 19px;
 
   ${({ theme }) => css`
     color: ${theme.COLORS.WHITE};

@@ -1,4 +1,6 @@
-import { Container, Icon, Text, Title } from "./styles";
+import { Container, Mark, Text, Title } from "./styles";
+
+const flowMark = require("../../../assets/images/flow-mark.png");
 
 type Props = {
   title: string;
@@ -7,7 +9,11 @@ type Props = {
 export function ListEmpty({ title, text }: Props) {
   return (
     <Container>
-      <Icon name="clipboard-outline" />
+      <Mark
+        source={flowMark}
+        accessible={false}
+        accessibilityIgnoresInvertColors
+      />
       <Title>{title}</Title>
       <Text>{text}</Text>
     </Container>

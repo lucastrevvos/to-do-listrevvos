@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
+import type { ImageSourcePropType } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActionWrap,
   BackButton,
   Container,
   LeftColumn,
+  Logo,
   Subtitle,
   TextColumn,
   Title,
@@ -18,6 +20,7 @@ type Props = {
   showBackButton?: boolean;
   onBackPress?: () => void;
   rightAction?: React.ReactNode;
+  logoSource?: ImageSourcePropType;
 };
 
 export function AppHeader({
@@ -26,6 +29,7 @@ export function AppHeader({
   showBackButton = false,
   onBackPress,
   rightAction,
+  logoSource,
 }: Props) {
   const insets = useSafeAreaInsets();
   return (
@@ -36,6 +40,14 @@ export function AppHeader({
             <BackButton onPress={onBackPress}>
               <Ionicons name="chevron-back" size={22} color="#FFF" />
             </BackButton>
+          ) : null}
+
+          {logoSource ? (
+            <Logo
+              source={logoSource}
+              accessible={false}
+              accessibilityIgnoresInvertColors
+            />
           ) : null}
 
           <TextColumn>

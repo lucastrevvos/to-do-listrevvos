@@ -16,7 +16,6 @@ import {
   TextInput,
 } from "react-native";
 
-import { ButtonIcon } from "@/src/components/ButtonIcon";
 import { JoinSharedListModal } from "@/src/components/JoinSharedListModal";
 import { ListEmpty } from "@/src/components/ListEmpty";
 import { Tasks } from "@/src/components/Tasks";
@@ -40,86 +39,31 @@ import { loadTasks, removeTaskById, saveTasks } from "@/src/storage/tasks";
 import type { Task } from "@/src/types/task";
 import { AppError } from "@/src/utils/AppError";
 
-import { AppHeader } from "@/src/components/AppHeader";
 import { deleteSharedList, leaveSharedList } from "@/src/services/sharedLists";
 import { ListType } from "@/src/types/group";
-import { Ionicons } from "@expo/vector-icons";
+import { AddItemBar, ListDetailHeader } from "./components";
 import {
-  ActionButton,
-  Badge,
-  BadgeText,
+  getEmptyText,
+  getInputPlaceholder,
+  getListTypeLabel,
+  getMetaDescription,
+  sortTasksByCompleted,
+} from "./helpers";
+import { mapSharedItemsToTasks } from "./mappers";
+import { buildListMenuActions, withCancel } from "./menuActions";
+import {
   Container,
   Content,
   EmptyWrap,
   Fab,
   FabText,
-  FormCard,
-  HeaderArea,
-  InputRow,
-  ListMeta,
-  ListTitle,
   LoadingWrap,
-  ProgressBar,
-  ProgressFill,
-  ProgressMeta,
-  ProgressNumber,
-  ProgressText,
-  QuickStat,
-  QuickStatLabel,
-  QuickStatsRow,
-  QuickStatValue,
-  StyledInput,
 } from "./styles";
 
 type Props = {
   id: string;
   scope: "local" | "shared";
 };
-
-function getListTypeLabel(type: ListType, isShared: boolean) {
-  if (isShared) return "Compartilhada";
-
-  switch (type) {
-    case "shopping":
-      return "🛒 Compras";
-    case "routine":
-      return "🔁 Rotina";
-    default:
-      return "✔ Tarefas";
-  }
-}
-
-function getProgressLabel(type: ListType) {
-  switch (type) {
-    case "shopping":
-      return "itens comprados";
-    case "routine":
-      return "hábitos concluídos";
-    default:
-      return "tarefas concluídas";
-  }
-}
-
-function getMetaDescription(type: ListType, isShared: boolean) {
-  if (isShared) {
-    return "Lista colaborativa para uso em grupo.";
-  }
-
-  switch (type) {
-    case "shopping":
-      return "Lista ideal para compras e itens recorrentes.";
-    case "routine":
-      return "Lista reiniciável para hábitos e rotinas.";
-    default:
-      return "Lista pessoal para organizar suas tarefas.";
-  }
-}
-
-function sortTasksByCompleted<T extends { completed: boolean }>(items: T[]) {
-  const pending = items.filter((item) => !item.completed);
-  const done = items.filter((item) => item.completed);
-  return [...pending, ...done];
-}
 
 export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
@@ -200,16 +144,7 @@ export function ListDetail({ id, scope }: Props) {
 
   const itemsAsTasks = useMemo(() => {
     if (isShared) {
-      return sharedItems.map(
-        (i) =>
-          ({
-            id: i.id,
-            title: i.text,
-            completed: i.isDone,
-            groupId: id,
-            createdAt: new Date(i.createdAt).getTime(),
-          }) as Task,
-      );
+      return mapSharedItemsToTasks(sharedItems, id);
     }
 
     return localTasks;
@@ -260,6 +195,8 @@ export function ListDetail({ id, scope }: Props) {
         completed: false,
         groupId: id,
         createdAt: Date.now(),
+        remoteId: "",
+        remoteVersion: 0,
       };
 
       const updated = [newTask, ...allTasks];
@@ -489,50 +426,33 @@ export function ListDetail({ id, scope }: Props) {
   }
 
   function openMenu() {
-    const options = [];
-
-    if (role === "OWNER") {
-      options.push({
-        text: "Excluir lista",
-        style: "destructive",
-        onPress: handleDeleteShared,
-      });
-    }
-
-    if (role === "EDITOR") {
-      options.push({
-        text: "Sair da lista",
-        style: "destructive",
-        onPress: handleLeave,
-      });
-    }
-
-    if (isShared) {
-      /*options.push({
-      text: "Ver token",
-      onPress: () => setShowJoinByToken(true),
-    });
-    */
-
-      options.push({
-        text: "Compartilhar",
-        onPress: handleShare,
-      });
-    }
-
-    if (completed > 0) {
-      options.push({
-        text: "Desmarcar todas",
-        onPress: handleUncheckAll,
-      });
-    }
-
-    options.push({
-      text: "Cancelar",
-      style: "cancel",
+    const actions = buildListMenuActions({
+      isShared,
+      role,
+      completedCount: completed,
+      onShare: handleShare,
+      onUncheckAll: handleUncheckAll,
+      onLeave: handleLeave,
+      onDelete: handleDeleteShared,
+      onMoreOptions: openMoreOptions,
     });
 
-    Alert.alert("Opções da lista", "", options);
+    Alert.alert("Ações da lista", "", withCancel(actions.primary));
+  }
+
+  function openMoreOptions() {
+    const actions = buildListMenuActions({
+      isShared,
+      role,
+      completedCount: completed,
+      onShare: handleShare,
+      onUncheckAll: handleUncheckAll,
+      onLeave: handleLeave,
+      onDelete: handleDeleteShared,
+      onMoreOptions: openMoreOptions,
+    });
+
+    Alert.alert("Mais opções", "", withCancel(actions.more));
   }
 
   async function handleJoinByToken(token: string) {
@@ -578,77 +498,28 @@ export function ListDetail({ id, scope }: Props) {
 
   return (
     <Container>
-      <HeaderArea>
-        <AppHeader
-          title={title}
-          subtitle={
-            isShared
-              ? "Lista compartilhada do TodoList Trevvos"
-              : "Lista local do TodoList Trevvos"
-          }
-          showBackButton
-          onBackPress={() => router.back()}
-          rightAction={
-            completed > 0 || isShared ? (
-              <ActionButton onPress={openMenu}>
-                <Ionicons name="ellipsis-horizontal" size={20} color="#FFF" />
-              </ActionButton>
-            ) : null
-          }
-        />
-
-        <ListTitle>{title}</ListTitle>
-
-        <Badge shared={isShared}>
-          <BadgeText>{getListTypeLabel(listType, isShared)}</BadgeText>
-        </Badge>
-
-        <ListMeta>{getMetaDescription(listType, isShared)}</ListMeta>
-
-        <ProgressBar>
-          <ProgressFill progress={progress} />
-        </ProgressBar>
-
-        <ProgressMeta>
-          <ProgressNumber>
-            {completed}/{total}
-          </ProgressNumber>
-          <ProgressText>{getProgressLabel(listType)}</ProgressText>
-        </ProgressMeta>
-
-        <QuickStatsRow>
-          <QuickStat>
-            <QuickStatValue>{total}</QuickStatValue>
-            <QuickStatLabel>Total</QuickStatLabel>
-          </QuickStat>
-
-          <QuickStat>
-            <QuickStatValue>{completed}</QuickStatValue>
-            <QuickStatLabel>Feitos</QuickStatLabel>
-          </QuickStat>
-
-          <QuickStat>
-            <QuickStatValue>{pending}</QuickStatValue>
-            <QuickStatLabel>Pendentes</QuickStatLabel>
-          </QuickStat>
-        </QuickStatsRow>
-      </HeaderArea>
+      <ListDetailHeader
+        title={title}
+        badgeLabel={getListTypeLabel(listType, isShared)}
+        description={getMetaDescription(listType, isShared)}
+        isShared={isShared}
+        total={total}
+        completed={completed}
+        pending={pending}
+        progress={progress}
+        showMenu={completed > 0 || isShared}
+        onBack={() => router.back()}
+        onOpenMenu={openMenu}
+      />
 
       <Content>
-        <FormCard>
-          <InputRow>
-            <StyledInput
-              ref={inputRef}
-              placeholder="Adicionar item"
-              placeholderTextColor="#808080"
-              onChangeText={setNewItem}
-              value={newItem}
-              onSubmitEditing={handleAddItem}
-              returnKeyType="done"
-            />
-            <ButtonIcon icon="add-circle-outline" onPress={handleAddItem} />
-          </InputRow>
-        </FormCard>
+        <AddItemBar
+          inputRef={inputRef}
+          value={newItem}
+          placeholder={getInputPlaceholder(listType)}
+          onChangeText={setNewItem}
+          onSubmit={handleAddItem}
+        />
 
         <FlatList
           data={itemsAsTasks}
@@ -664,13 +535,7 @@ export function ListDetail({ id, scope }: Props) {
             <EmptyWrap>
               <ListEmpty
                 title="Lista vazia"
-                text={
-                  listType === "shopping"
-                    ? "Adicione itens para montar sua lista de compras."
-                    : listType === "routine"
-                      ? "Adicione hábitos para começar sua rotina."
-                      : "Adicione tarefas para começar."
-                }
+                text={getEmptyText(listType)}
               />
             </EmptyWrap>
           )}

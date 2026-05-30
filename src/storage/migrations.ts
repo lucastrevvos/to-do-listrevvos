@@ -30,6 +30,10 @@ export async function migrateIfNeeded() {
       completed: !!t.completed,
       groupId: t.groupId ?? DEFAULT_GROUP_ID,
       createdAt: t.createdAt ?? Date.now(),
+      remoteId: t.remoteId ?? "",
+      remoteVersion: t.remoteVersion ?? 0,
+      dirty: t.dirty,
+      deletedAt: t.deletedAt,
     }));
 
     await AsyncStorage.multiSet([

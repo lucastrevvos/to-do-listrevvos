@@ -1,4 +1,4 @@
-# Política de Privacidade – TodoList Trevvos
+# Política de Privacidade – Trevvos Flow
 
 Este aplicativo não coleta, armazena ou compartilha dados pessoais dos usuários.
 

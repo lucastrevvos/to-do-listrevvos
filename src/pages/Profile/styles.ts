@@ -19,12 +19,30 @@ export const HeroCard = styled.View`
   margin-bottom: 20px;
 `;
 
+export const BrandRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+`;
+
+export const BrandLogo = styled.Image`
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+`;
+
+export const BrandTextWrap = styled.View`
+  flex: 1;
+  min-width: 0;
+`;
+
 export const Badge = styled.View`
   align-self: flex-start;
   background-color: ${({ theme }) => theme.COLORS.BLUE_DARK};
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: 999px;
-  margin-bottom: 12px;
+  margin-top: 4px;
 `;
 
 export const BadgeText = styled.Text`

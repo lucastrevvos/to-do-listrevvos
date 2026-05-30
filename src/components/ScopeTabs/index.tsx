@@ -10,37 +10,42 @@ type Props = {
 };
 
 const Wrapper = styled.View`
-  padding: 8px 16px 0px 16px;
+  padding: 8px 20px 0;
   flex-direction: row;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const Tab = styled(Pressable)<{ active: boolean }>`
-  padding: 8px 12px;
-  border-radius: 999px;
+  flex: 1;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 12px;
   border-width: 1px;
 
   background-color: ${({ active, theme }) =>
-    active ? theme.COLORS.BLUE_DARK : "#333"};
+    active ? theme.COLORS.BLUE_DARK : theme.COLORS.GRAY_600};
   border-color: ${({ active, theme }) =>
-    active ? theme.COLORS.BLUE_DARK : "#666"};
+    active ? theme.COLORS.BLUE : theme.COLORS.GRAY_500};
 `;
 
-const Label = styled.Text`
-  color: ${({ theme }) => theme.COLORS.WHITE};
+const Label = styled.Text<{ active: boolean }>`
+  color: ${({ active, theme }) =>
+    active ? theme.COLORS.WHITE : theme.COLORS.GRAY_200};
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 `;
 
 export function ScopeTabs({ value, onChange }: Props) {
   return (
     <Wrapper>
       <Tab active={value === "local"} onPress={() => onChange("local")}>
-        <Label>Locais</Label>
+        <Label active={value === "local"}>Locais</Label>
       </Tab>
 
       <Tab active={value === "shared"} onPress={() => onChange("shared")}>
-        <Label>Compartilhadas</Label>
+        <Label active={value === "shared"}>Compartilhadas</Label>
       </Tab>
     </Wrapper>
   );

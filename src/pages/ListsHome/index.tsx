@@ -5,8 +5,6 @@ import {
   Alert,
   AppState,
   FlatList,
-  Pressable,
-  View,
 } from "react-native";
 import { useTheme } from "styled-components/native";
 
@@ -49,24 +47,33 @@ import {
   BadgeText,
   Card,
   CardFooter,
+  CardHeader,
+  CardMain,
   CardProgressBar,
   CardProgressFill,
   CardSubtitle,
+  CardTouchable,
   CardTitle,
   Container,
-  EmptyText,
+  EmptyDescription,
+  EmptyLogo,
+  EmptyState,
+  EmptyTitle,
   Fab,
   FabText,
-  HeaderBlock,
-  HeroCard,
-  HeroLabel,
-  HeroNumber,
-  HeroRow,
-  HeroText,
   ListsContainer,
+  LoadingWrap,
+  MenuButton,
+  SectionHeader,
   SectionActionText,
+  SectionTitleWrap,
   SectionTitle,
+  SharedActionButton,
+  SharedActionContent,
+  SummaryText,
 } from "./styles";
+
+const flowMark = require("../../../assets/images/flow-mark.png");
 
 type LocalListCard = {
   id: string;
@@ -115,18 +122,16 @@ function getListAccent(type?: "shopping" | "task" | "routine") {
 function getListTypeLabel(type?: "shopping" | "task" | "routine") {
   switch (type) {
     case "shopping":
-      return "🛒 Compras";
+      return "Compras";
     case "routine":
-      return "🔁 Rotina";
+      return "Rotina";
     default:
-      return "📝 Tarefa";
+      return "Tarefa";
   }
 }
 
 export function ListsHome() {
   const { COLORS } = useTheme();
-
-  const [showRemoveHint, setShowRemoveHint] = useState(true);
 
   const [isReady, setIsReady] = useState(false);
   const [activeTab, setActiveTab] = useState<ScopeTabValue>("local");
@@ -439,11 +444,9 @@ export function ListsHome() {
   if (!isReady) {
     return (
       <Container>
-        <ListsContainer
-          style={{ alignItems: "center", justifyContent: "center" }}
-        >
+        <LoadingWrap>
           <ActivityIndicator size="small" color={COLORS.GRAY_300} />
-        </ListsContainer>
+        </LoadingWrap>
       </Container>
     );
   }
@@ -451,108 +454,42 @@ export function ListsHome() {
   return (
     <Container>
       <AppHeader
-        title="TodoList Trevvos"
-        subtitle="Listas para compras, tarefas e rotinas"
+        title="Trevvos Flow"
+        subtitle="Listas, tarefas e rotinas em fluxo."
+        logoSource={flowMark}
       />
-
-      <HeaderBlock>
-        <HeroCard>
-          <HeroLabel>
-            {activeTab === "local"
-              ? "Seu espaço local"
-              : "Espaço compartilhado"}
-          </HeroLabel>
-
-          <HeroText>
-            {activeTab === "local"
-              ? "Listas pessoais, compras, viagens e lembretes."
-              : "Listas em grupo para colaborar com outras pessoas."}
-          </HeroText>
-
-          <HeroRow>
-            <View>
-              <HeroNumber>{totalLists}</HeroNumber>
-              <CardSubtitle>listas</CardSubtitle>
-            </View>
-
-            <View>
-              <HeroNumber>{totalItems}</HeroNumber>
-              <CardSubtitle>itens</CardSubtitle>
-            </View>
-
-            <View>
-              <HeroNumber>{totalCompleted}</HeroNumber>
-              <CardSubtitle>concluídos</CardSubtitle>
-            </View>
-          </HeroRow>
-        </HeroCard>
-      </HeaderBlock>
 
       <ScopeTabs value={activeTab} onChange={setActiveTab} />
 
       <ListsContainer>
-        <SectionTitle>
-          {activeTab === "local" ? "Suas listas" : "Listas compartilhadas"}
-        </SectionTitle>
+        <SectionHeader>
+          <SectionTitleWrap>
+            <SectionTitle>
+              {activeTab === "local" ? "Suas listas" : "Compartilhadas"}
+            </SectionTitle>
+            <SummaryText>
+              {totalLists} listas · {totalItems} itens · {totalCompleted} feitos
+            </SummaryText>
+          </SectionTitleWrap>
 
-        {activeTab === "local" && showRemoveHint ? (
-          <View
-            style={{
-              marginBottom: 12,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
-              borderRadius: 12,
-              backgroundColor: COLORS.GRAY_600,
-              borderWidth: 1,
-              borderColor: COLORS.GRAY_500,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 10,
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <SectionActionText>
-                Dica: segure uma lista para remover.
-              </SectionActionText>
-            </View>
-
-            <Pressable onPress={() => setShowRemoveHint(false)}>
-              <SectionActionText>Fechar</SectionActionText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {activeTab === "shared" ? (
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "flex-end",
-              marginBottom: 12,
-            }}
-          >
-            <Pressable
-              onPress={() => setShowJoinSharedList(true)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 999,
-                backgroundColor: COLORS.GRAY_600,
-                borderWidth: 1,
-                borderColor: COLORS.GRAY_500,
-              }}
-            >
-              <SectionActionText>Entrar por token</SectionActionText>
-            </Pressable>
-          </View>
-        ) : null}
+          {activeTab === "shared" ? (
+            <SharedActionButton onPress={() => setShowJoinSharedList(true)}>
+              <SharedActionContent>
+                <Ionicons
+                  name="enter-outline"
+                  size={15}
+                  color={COLORS.WHITE}
+                />
+                <SectionActionText>Entrar por token</SectionActionText>
+              </SharedActionContent>
+            </SharedActionButton>
+          ) : null}
+        </SectionHeader>
 
         {activeTab === "shared" && sharedLoading ? (
-          <View
-            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-          >
+          <LoadingWrap>
             <ActivityIndicator size="small" color={COLORS.GRAY_300} />
-          </View>
+          </LoadingWrap>
         ) : (
           <FlatList
             data={visibleCards}
@@ -569,32 +506,17 @@ export function ListsHome() {
               const progress = item.total > 0 ? item.completed / item.total : 0;
 
               return (
-                <Pressable
-                  onPress={() => openList(item)}
-                  onLongPress={() => {
-                    if (item.scope === "local") {
-                      confirmRemoveList(item);
-                    }
-                  }}
-                  delayLongPress={300}
-                >
+                <CardTouchable onPress={() => openList(item)}>
                   <Card
                     accent={getListAccent("type" in item ? item.type : "task")}
                   >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 12,
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
+                    <CardHeader>
+                      <CardMain>
                         <CardTitle numberOfLines={1}>{item.title}</CardTitle>
                         <CardSubtitle>
                           {item.completed} de {item.total} itens
                         </CardSubtitle>
-                      </View>
+                      </CardMain>
 
                       <Badge shared={item.scope === "shared"}>
                         <BadgeText>
@@ -609,7 +531,7 @@ export function ListsHome() {
                       {(item.scope === "local" &&
                         item.id !== DEFAULT_GROUP_ID) ||
                       item.scope === "shared" ? (
-                        <Pressable
+                        <MenuButton
                           onPress={() => {
                             if (item.scope === "local") {
                               confirmRemoveList(item);
@@ -618,21 +540,15 @@ export function ListsHome() {
                             }
                           }}
                           hitSlop={8}
-                          style={{
-                            width: 28,
-                            height: 28,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
                         >
                           <Ionicons
                             name="ellipsis-horizontal"
                             size={18}
                             color={COLORS.GRAY_200}
                           />
-                        </Pressable>
+                        </MenuButton>
                       ) : null}
-                    </View>
+                    </CardHeader>
 
                     <CardProgressBar>
                       <CardProgressFill
@@ -657,15 +573,27 @@ export function ListsHome() {
                       ) : null}
                     </CardFooter>
                   </Card>
-                </Pressable>
+                </CardTouchable>
               );
             }}
             ListEmptyComponent={() => (
-              <EmptyText>
-                {activeTab === "local"
-                  ? "Você ainda não criou nenhuma lista."
-                  : "Nenhuma lista compartilhada encontrada."}
-              </EmptyText>
+              <EmptyState>
+                <EmptyLogo
+                  source={flowMark}
+                  accessible={false}
+                  accessibilityIgnoresInvertColors
+                />
+                <EmptyTitle>
+                  {activeTab === "local"
+                    ? "Crie sua primeira lista"
+                    : "Nenhuma lista compartilhada"}
+                </EmptyTitle>
+                <EmptyDescription>
+                  {activeTab === "local"
+                    ? "Use o botão + para organizar tarefas, compras ou rotinas."
+                    : "Entre por token ou crie uma lista compartilhada pelo botão +."}
+                </EmptyDescription>
+              </EmptyState>
             )}
           />
         )}
