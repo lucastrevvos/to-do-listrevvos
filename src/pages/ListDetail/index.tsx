@@ -1,4 +1,4 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, {
   useCallback,
@@ -10,6 +10,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Keyboard,
   Share,
@@ -47,9 +48,9 @@ import {
   getInputPlaceholder,
   getListTypeLabel,
   getMetaDescription,
-  sortTasksByCompleted,
+  sortTasksForDisplay,
 } from "./helpers";
-import { mapSharedItemsToTasks } from "./mappers";
+import { mapSharedItemsToTasks, sortSharedItemsForDisplay } from "./mappers";
 import { buildListMenuActions, withCancel } from "./menuActions";
 import {
   Container,
@@ -65,8 +66,12 @@ type Props = {
   scope: "local" | "shared";
 };
 
+const AUTO_REFRESH_COOLDOWN_MS = 7000;
+
 export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
+  const lastAutoRefreshAtRef = useRef(0);
+  const autoRefreshingRef = useRef(false);
 
   const [title, setTitle] = useState("Lista");
   const [newItem, setNewItem] = useState("");
@@ -81,6 +86,7 @@ export function ListDetail({ id, scope }: Props) {
   const [showJoinByToken, setShowJoinByToken] = useState(false);
 
   const isShared = scope === "shared";
+  const isFocused = useIsFocused();
 
   const [role, setRole] = useState<"OWNER" | "EDITOR" | null>(null);
 
@@ -102,7 +108,8 @@ export function ListDetail({ id, scope }: Props) {
           setRole(current.role);
         }
 
-        setSharedItems(items);
+        setSharedItems(sortSharedItemsForDisplay(items));
+        lastAutoRefreshAtRef.current = Date.now();
         return;
       }
 
@@ -117,7 +124,7 @@ export function ListDetail({ id, scope }: Props) {
         setListType(currentGroup.type ?? "task");
       }
 
-      setLocalTasks(tasks.filter((t) => t.groupId === id));
+      setLocalTasks(sortTasksForDisplay(tasks.filter((t) => t.groupId === id)));
     } finally {
       setLoading(false);
     }
@@ -127,27 +134,12 @@ export function ListDetail({ id, scope }: Props) {
     bootstrap();
   }, [bootstrap]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-
-      (async () => {
-        if (cancelled) return;
-        await bootstrap();
-      })();
-
-      return () => {
-        cancelled = true;
-      };
-    }, [bootstrap]),
-  );
-
   const itemsAsTasks = useMemo(() => {
     if (isShared) {
       return mapSharedItemsToTasks(sharedItems, id);
     }
 
-    return localTasks;
+      return sortTasksForDisplay(localTasks);
   }, [isShared, sharedItems, localTasks, id]);
 
   const completed = itemsAsTasks.filter((t) => t.completed).length;
@@ -155,10 +147,11 @@ export function ListDetail({ id, scope }: Props) {
   const pending = total - completed;
   const progress = total > 0 ? completed / total : 0;
 
-  async function refreshSharedItems() {
+  const refreshSharedItems = useCallback(async () => {
     const items = await fetchSharedItems(id);
-    setSharedItems(items);
-  }
+    setSharedItems(sortSharedItemsForDisplay(items));
+    lastAutoRefreshAtRef.current = Date.now();
+  }, [id]);
 
   async function handleRefresh() {
     try {
@@ -168,6 +161,45 @@ export function ListDetail({ id, scope }: Props) {
       setRefreshing(false);
     }
   }
+
+  const maybeAutoRefreshSharedItems = useCallback(async () => {
+    if (!isShared) return;
+    if (!isFocused) return;
+    if (loading || refreshing || autoRefreshingRef.current) return;
+
+    const now = Date.now();
+    if (now - lastAutoRefreshAtRef.current < AUTO_REFRESH_COOLDOWN_MS) return;
+
+    autoRefreshingRef.current = true;
+
+    try {
+      await refreshSharedItems();
+    } catch (error) {
+      console.log("[shared-list] auto refresh failed", error);
+    } finally {
+      autoRefreshingRef.current = false;
+    }
+  }, [isShared, isFocused, loading, refreshing, refreshSharedItems]);
+
+  useFocusEffect(
+    useCallback(() => {
+      maybeAutoRefreshSharedItems();
+    }, [maybeAutoRefreshSharedItems]),
+  );
+
+  useEffect(() => {
+    if (!isShared) return;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        maybeAutoRefreshSharedItems();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isShared, maybeAutoRefreshSharedItems]);
 
   async function handleAddItem() {
     try {
@@ -202,7 +234,7 @@ export function ListDetail({ id, scope }: Props) {
       const updated = [newTask, ...allTasks];
       await saveTasks(updated);
 
-      setLocalTasks((prev) => [newTask, ...prev]);
+      setLocalTasks((prev) => sortTasksForDisplay([newTask, ...prev]));
       setNewItem("");
       Keyboard.dismiss();
     } catch (err) {
@@ -294,17 +326,13 @@ export function ListDetail({ id, scope }: Props) {
         i.id === idItem ? { ...i, isDone: !i.isDone } : i,
       );
 
-      const sortedOptimistic = [
-        ...optimistic.filter((i) => !i.isDone),
-        ...optimistic.filter((i) => i.isDone),
-      ];
-
-      setSharedItems(sortedOptimistic);
+      setSharedItems(sortSharedItemsForDisplay(optimistic));
 
       try {
         await updateSharedItem(id, idItem, {
           isDone: !current.isDone,
         });
+        await refreshSharedItems();
       } catch {
         await bootstrap();
       }
@@ -320,7 +348,7 @@ export function ListDetail({ id, scope }: Props) {
     const currentListTasks = updated.filter((t) => t.groupId === id);
     const otherTasks = updated.filter((t) => t.groupId !== id);
 
-    const sortedCurrentListTasks = sortTasksByCompleted(currentListTasks);
+    const sortedCurrentListTasks = sortTasksForDisplay(currentListTasks);
     const finalTasks = [...sortedCurrentListTasks, ...otherTasks];
 
     await saveTasks(finalTasks);
@@ -336,7 +364,7 @@ export function ListDetail({ id, scope }: Props) {
 
     await removeTaskById(idItem);
     const all = await loadTasks();
-    setLocalTasks(all.filter((t) => t.groupId === id));
+    setLocalTasks(sortTasksForDisplay(all.filter((t) => t.groupId === id)));
   }
 
   async function handleResetRoutine() {
@@ -351,7 +379,7 @@ export function ListDetail({ id, scope }: Props) {
       );
 
       await saveTasks(updated);
-      setLocalTasks(updated.filter((t) => t.groupId === id));
+      setLocalTasks(sortTasksForDisplay(updated.filter((t) => t.groupId === id)));
     } catch {
       Alert.alert("Rotina", "Não foi possível reiniciar a rotina.");
     }
@@ -379,11 +407,8 @@ export function ListDetail({ id, scope }: Props) {
                 );
 
                 const refreshed = await fetchSharedItems(id);
-                const sorted = [
-                  ...refreshed.filter((i) => !i.isDone),
-                  ...refreshed.filter((i) => i.isDone),
-                ];
-                setSharedItems(sorted);
+                setSharedItems(sortSharedItemsForDisplay(refreshed));
+                lastAutoRefreshAtRef.current = Date.now();
                 return;
               }
 
@@ -396,7 +421,7 @@ export function ListDetail({ id, scope }: Props) {
               await saveTasks(updated);
 
               const currentListTasks = updated.filter((t) => t.groupId === id);
-              setLocalTasks(currentListTasks);
+              setLocalTasks(sortTasksForDisplay(currentListTasks));
             } catch (e: any) {
               Alert.alert(
                 "Desmarcar todas",
