@@ -25,6 +25,14 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="todolistrevvos"/>
+        <data android:scheme="exp+todolist-trevvos"/>
+      </intent-filter>
+      <intent-filter data-generated="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="todolistrevvos" android:host="todo" android:pathPrefix="/invite"/>
+        <data android:scheme="exp+todolist-trevvos"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
     </activity>
   </application>
