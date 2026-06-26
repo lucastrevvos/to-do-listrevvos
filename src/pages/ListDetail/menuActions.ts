@@ -1,6 +1,6 @@
 import type { AlertButton } from "react-native";
 
-export type ListRole = "OWNER" | "EDITOR" | null;
+export type ListRole = "OWNER" | "EDITOR" | "VIEWER" | null;
 
 type BuildMenuActionsParams = {
   isShared: boolean;

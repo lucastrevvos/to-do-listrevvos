@@ -80,6 +80,10 @@ export function ListDetail({ id, scope }: Props) {
   const inputRef = useRef<TextInput>(null);
   const lastAutoRefreshAtRef = useRef(0);
   const autoRefreshingRef = useRef(false);
+  const refreshIdRef = useRef(0);
+  const loadingRef = useRef(true);
+  const refreshingRef = useRef(false);
+  const pendingToggleIdsRef = useRef<Set<string>>(new Set());
 
   const [title, setTitle] = useState("Lista");
   const [newItem, setNewItem] = useState("");
@@ -102,7 +106,7 @@ export function ListDetail({ id, scope }: Props) {
   const isShared = scope === "shared";
   const isFocused = useIsFocused();
 
-  const [role, setRole] = useState<"OWNER" | "EDITOR" | null>(null);
+  const [role, setRole] = useState<"OWNER" | "EDITOR" | "VIEWER" | null>(null);
 
   const bootstrap = useCallback(async () => {
     try {
@@ -148,6 +152,9 @@ export function ListDetail({ id, scope }: Props) {
     bootstrap();
   }, [bootstrap]);
 
+  useEffect(() => { loadingRef.current = loading; }, [loading]);
+  useEffect(() => { refreshingRef.current = refreshing; }, [refreshing]);
+
   const itemsAsTasks = useMemo(() => {
     if (isShared) {
       return mapSharedItemsToTasks(sharedItems, id);
@@ -163,7 +170,9 @@ export function ListDetail({ id, scope }: Props) {
   const canSuggestItems = isAiSuggestionsEnabled();
 
   const refreshSharedItems = useCallback(async () => {
+    const requestId = ++refreshIdRef.current;
     const items = await fetchSharedItems(id);
+    if (requestId !== refreshIdRef.current) return;
     setSharedItems(sortSharedItemsForDisplay(items));
     lastAutoRefreshAtRef.current = Date.now();
   }, [id]);
@@ -180,7 +189,7 @@ export function ListDetail({ id, scope }: Props) {
   const maybeAutoRefreshSharedItems = useCallback(async () => {
     if (!isShared) return;
     if (!isFocused) return;
-    if (loading || refreshing || autoRefreshingRef.current) return;
+    if (loadingRef.current || refreshingRef.current || autoRefreshingRef.current) return;
 
     const now = Date.now();
     if (now - lastAutoRefreshAtRef.current < AUTO_REFRESH_COOLDOWN_MS) return;
@@ -194,7 +203,7 @@ export function ListDetail({ id, scope }: Props) {
     } finally {
       autoRefreshingRef.current = false;
     }
-  }, [isShared, isFocused, loading, refreshing, refreshSharedItems]);
+  }, [isShared, isFocused, refreshSharedItems]);
 
   useFocusEffect(
     useCallback(() => {
@@ -334,22 +343,63 @@ export function ListDetail({ id, scope }: Props) {
 
   async function handleToggle(idItem: string) {
     if (isShared) {
+      if (pendingToggleIdsRef.current.has(idItem)) return;
+
       const current = sharedItems.find((i) => i.id === idItem);
       if (!current) return;
 
-      const optimistic = sharedItems.map((i) =>
-        i.id === idItem ? { ...i, isDone: !i.isDone } : i,
-      );
+      const nextIsDone = !current.isDone;
 
-      setSharedItems(sortSharedItemsForDisplay(optimistic));
+      if (__DEV__) {
+        console.log("[shared-toggle] start", {
+          itemId: idItem,
+          currentIsDone: current.isDone,
+          nextIsDone,
+        });
+      }
+
+      pendingToggleIdsRef.current.add(idItem);
+
+      setSharedItems((prev) => {
+        const optimistic = prev.map((i) =>
+          i.id === idItem ? { ...i, isDone: nextIsDone } : i,
+        );
+        return sortSharedItemsForDisplay(optimistic);
+      });
 
       try {
-        await updateSharedItem(id, idItem, {
-          isDone: !current.isDone,
+        const updated = await updateSharedItem(id, idItem, {
+          isDone: nextIsDone,
         });
-        await refreshSharedItems();
+
+        if (__DEV__) {
+          console.log("[shared-toggle] server response", {
+            id: updated?.id,
+            isDone: updated?.isDone,
+          });
+        }
+
+        // Patch only this item with the server's confirmed state.
+        // Avoids a stale GET (fetchSharedItems after PATCH can return the
+        // pre-update value if the backend has any read/write lag).
+        if (updated?.id) {
+          setSharedItems((prev) => {
+            const patched = prev.map((i) =>
+              i.id === updated.id ? updated : i,
+            );
+            return sortSharedItemsForDisplay(patched);
+          });
+          lastAutoRefreshAtRef.current = Date.now();
+        } else {
+          await refreshSharedItems();
+        }
       } catch {
+        if (__DEV__) {
+          console.log("[shared-toggle] error, rolling back via bootstrap");
+        }
         await bootstrap();
+      } finally {
+        pendingToggleIdsRef.current.delete(idItem);
       }
       return;
     }
@@ -421,9 +471,7 @@ export function ListDetail({ id, scope }: Props) {
                   ),
                 );
 
-                const refreshed = await fetchSharedItems(id);
-                setSharedItems(sortSharedItemsForDisplay(refreshed));
-                lastAutoRefreshAtRef.current = Date.now();
+                await refreshSharedItems();
                 return;
               }
 
@@ -676,6 +724,7 @@ export function ListDetail({ id, scope }: Props) {
 
         <FlatList
           data={itemsAsTasks}
+          extraData={sharedItems}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Tasks

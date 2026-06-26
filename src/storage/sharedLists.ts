@@ -6,7 +6,7 @@ const STORAGE_KEY = "@trevvos/sharedLists";
 export type SharedList = {
   id: string;
   title: string;
-  role: "OWNER" | "EDITOR";
+  role: "OWNER" | "EDITOR" | "VIEWER";
 };
 
 /**
